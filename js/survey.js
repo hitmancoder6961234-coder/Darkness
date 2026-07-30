@@ -139,11 +139,41 @@ function checkAccessFromSheet(email, onSuccess, onError) {
     fetch(url)
         .then(function(response) { return response.json(); })
         .then(function(data) {
-            if (data && data.status) {
-                onSuccess(data.status);
-            } else {
+            console.log("checkAccess response:", data);
+            if (!data) {
                 onSuccess("Not Found");
+                return;
             }
+
+            // Handle multiple response formats from different Apps Script versions:
+            // Format 1: {"status": "Accepted"} or {"status": "Pending"} or {"status": "Not Found"}
+            // Format 2: {"status": "found", "accessStatus": "Accepted"} or {"status": "not found"}
+            // Format 3: {"status": "exists", "currentStatus": "Accepted"}
+
+            var accessStatus = "";
+
+            if (data.accessStatus) {
+                // Format 2: status="found", accessStatus="Accepted"/"Pending"/"Rejected"
+                accessStatus = data.accessStatus;
+            } else if (data.currentStatus) {
+                // Format 3: status="exists", currentStatus="Accepted"/"Pending"
+                accessStatus = data.currentStatus;
+            } else if (data.status === "found" || data.status === "exists") {
+                // If status is "found" but no accessStatus field, try to get it
+                accessStatus = "Unknown";
+            } else if (data.status === "Not Found" || data.status === "not found") {
+                accessStatus = "Not Found";
+            } else {
+                // Format 1: status directly contains the access status
+                accessStatus = data.status;
+            }
+
+            // Also save the name if provided
+            if (data.name) {
+                localStorage.setItem("approvedName", data.name);
+            }
+
+            onSuccess(accessStatus);
         })
         .catch(function(error) {
             console.error("Access check error:", error);
