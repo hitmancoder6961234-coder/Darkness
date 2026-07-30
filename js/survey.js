@@ -20,7 +20,7 @@ const firstQuestion = {
     ]
 };
 
-// Questions for Laptop Owners
+// Questions for Laptop Owners (If Answer = Yes)
 const ownerQuestions = [
     {
         question: "What do you mainly use your laptop for?",
@@ -32,7 +32,7 @@ const ownerQuestions = [
     },
     {
         question: "What problem do you face most often with your current laptop?",
-        options: ["Slow Performance", "Battery Issue", "Heating", "Storage Shortage", "No Major Problem"]
+        options: ["Slow Performance", "Battery Issue", "Heating Problem", "Storage Shortage", "No Major Problem"]
     },
     {
         question: "How satisfied are you with your current laptop?",
@@ -44,7 +44,7 @@ const ownerQuestions = [
     },
     {
         question: "How often do you upgrade or replace your laptop?",
-        options: ["Every 1-2 Years", "Every 3-4 Years", "Every 5+ Years", "Only When Necessary"]
+        options: ["Every 1\u20132 Years", "Every 3\u20134 Years", "Every 5+ Years", "Only When Necessary"]
     },
     {
         question: "Which laptop brand do you currently use?",
@@ -60,7 +60,7 @@ const ownerQuestions = [
     }
 ];
 
-// Questions for Non-Owners
+// Questions for Non-Owners (If Answer = No)
 const buyerQuestions = [
     {
         question: "Why do you want to buy a laptop?",
@@ -72,7 +72,7 @@ const buyerQuestions = [
     },
     {
         question: "What is your expected budget?",
-        options: ["Below 30,000", "30,000 - 50,000", "50,000 - 80,000", "Above 80,000"]
+        options: ["Below \u20b930,000", "\u20b930,000\u2013\u20b950,000", "\u20b950,000\u2013\u20b980,000", "Above \u20b980,000"]
     },
     {
         question: "Which feature is most important to you?",
@@ -80,7 +80,7 @@ const buyerQuestions = [
     },
     {
         question: "Which screen size do you prefer?",
-        options: ["13-14 Inch", "15-16 Inch", "17 Inch or Larger"]
+        options: ["13\u201314 Inch", "15\u201316 Inch", "17 Inch or Larger"]
     },
     {
         question: "Which laptop brand would you prefer?",
@@ -88,7 +88,7 @@ const buyerQuestions = [
     },
     {
         question: "How long do you expect your laptop to last?",
-        options: ["1-2 Years", "3-5 Years", "More Than 5 Years"]
+        options: ["1\u20132 Years", "3\u20135 Years", "More Than 5 Years"]
     },
     {
         question: "Where would you prefer to buy a laptop?",
