@@ -33,7 +33,6 @@ function showSignInNew() {
 function showSignInAlready() {
     showScreen("signInAlready");
     document.getElementById("existingStatusMsg").style.display = "none";
-    // Clear the email field - don't auto-fill from localStorage
     document.getElementById("existingEmail").value = "";
 }
 
@@ -73,43 +72,48 @@ function submitNewRequest() {
     };
 
     sendToGoogleSheets(data, function() {
-        // After submitting, verify the actual status from the sheet
+        // After submitting, go to "Sign in Already" page with the email pre-filled
+        showStatus(msgEl, "info", "Request submitted! Checking your status...");
+
         setTimeout(function() {
+            // Switch to "Sign in Already" screen
+            showSignInAlready();
+            document.getElementById("existingEmail").value = email;
+            var msgEl2 = document.getElementById("existingStatusMsg");
+
+            showStatus(msgEl2, "info", "Checking your access for <strong>" + email + "</strong>...");
+
             checkAccessFromSheet(email, function(status) {
                 if (status === "Accepted") {
-                    showStatus(msgEl, "warning",
-                        "Your email is already <strong>Approved</strong>! You can proceed to the survey.<br>" +
-                        "<button onclick='goToSurvey(\"" + email + "\")' style='margin-top:10px;padding:10px 20px;border-radius:8px;background:#2563eb;color:#fff;border:none;cursor:pointer;font-size:1rem'>Start Survey</button>"
+                    showStatus(msgEl2, "success",
+                        "Your access has been <strong>Approved</strong>! Starting survey..."
                     );
+                    setTimeout(function() {
+                        startSurvey(email);
+                    }, 1200);
                 } else if (status === "Pending") {
-                    showStatus(msgEl, "success",
-                        "Your request has been submitted! Status: <strong>Pending</strong>.<br>" +
-                        "You will receive an email once your request is approved.<br>" +
-                        "You can come back anytime and use <strong>\"Sign in Already\"</strong> to check your status."
+                    showStatus(msgEl2, "warning",
+                        "Your request is currently <strong>Pending</strong>.<br>" +
+                        "Please wait for admin approval. You will receive an email once approved."
                     );
                 } else {
-                    showStatus(msgEl, "success",
+                    showStatus(msgEl2, "success",
                         "Your request has been submitted! Status: <strong>Pending</strong>.<br>" +
-                        "You will receive an email once your request is approved.<br>" +
-                        "You can come back anytime and use <strong>\"Sign in Already\"</strong> to check your status."
+                        "Please wait for admin approval. You will receive an email once approved."
                     );
                 }
             }, function() {
-                showStatus(msgEl, "success",
+                showStatus(msgEl2, "success",
                     "Your request has been submitted! Status: <strong>Pending</strong>.<br>" +
-                    "You will receive an email once your request is approved."
+                    "Please wait for admin approval."
                 );
             });
-        }, 2000); // Wait 2 seconds for the sheet to update
+        }, 2000);
     }, function() {
         showStatus(msgEl, "error",
             "There was an error submitting your request. Please try again."
         );
     });
-}
-
-function goToSurvey(email) {
-    startSurvey(email);
 }
 
 // =======================================
@@ -172,18 +176,11 @@ function checkAccessFromSheet(email, onSuccess, onError) {
                 return;
             }
 
-            // Handle multiple response formats from different Apps Script versions:
-            // Format 1: {"status": "Accepted"} or {"status": "Pending"} or {"status": "Not Found"}
-            // Format 2: {"status": "found", "accessStatus": "Accepted"} or {"status": "not_found", "accessStatus": "None"}
-            // Format 3: {"status": "exists", "currentStatus": "Accepted"}
-
             var accessStatus = "";
 
-            // First check if the email was NOT found
             if (data.status === "not_found" || data.status === "Not Found" || data.status === "not found") {
                 accessStatus = "Not Found";
             } else if (data.status === "found" || data.status === "exists") {
-                // Email was found - get the actual access status
                 if (data.accessStatus && data.accessStatus !== "None") {
                     accessStatus = data.accessStatus;
                 } else if (data.currentStatus) {
@@ -192,7 +189,6 @@ function checkAccessFromSheet(email, onSuccess, onError) {
                     accessStatus = "Unknown";
                 }
             } else {
-                // Format 1: status directly contains the access status
                 accessStatus = data.status;
             }
 
@@ -209,7 +205,7 @@ function checkAccessFromSheet(email, onSuccess, onError) {
 // =======================================
 
 (function autoCheckFromURL() {
-    // Clear old localStorage data from previous versions
+    // Clear old localStorage data
     localStorage.removeItem("approvedEmail");
     localStorage.removeItem("pendingEmail");
     localStorage.removeItem("pendingName");
@@ -220,10 +216,8 @@ function checkAccessFromSheet(email, onSuccess, onError) {
     var emailParam = params.get("email");
 
     if (emailParam && isValidEmail(emailParam)) {
-        // Auto-fill the existing email field
         document.getElementById("existingEmail").value = emailParam;
 
-        // Show "Sign in Already" screen and auto-check
         showSignInAlready();
         showStatus(document.getElementById("existingStatusMsg"), "info",
             "Checking your access for <strong>" + emailParam + "</strong>..."
@@ -248,7 +242,6 @@ function checkAccessFromSheet(email, onSuccess, onError) {
                     "No approved request found for this email.<br>" +
                     "Please <strong>\"Sign in as New\"</strong> to submit an access request."
                 );
-                // Show the choice screen after a moment
                 setTimeout(function() {
                     showSignInChoice();
                 }, 2000);
@@ -259,149 +252,117 @@ function checkAccessFromSheet(email, onSuccess, onError) {
             );
         });
     } else {
-        // No URL parameter - show the choice screen (no auto-fill)
         showSignInChoice();
     }
 })();
 
 // =======================================
-// Survey Data & Logic
+// Survey Logic - Step Based (No Dynamic Filtering)
 // =======================================
 
-var currentQuestion = 0;
-var answers = {};
-var userEmail = "";
-var questions = [];
+var surveyStep = 0;
+var surveyAnswers = {};
+var surveyEmail = "";
+var surveyQuestions = []; // The active question list for this user
 
-function buildQuestions() {
-    return [
-        {
-            id: "ownership",
-            text: "Do you currently own a laptop?",
-            column: "Laptop Ownership",
-            options: ["Yes", "No"],
-            type: "radio"
-        },
-        // ===== OWNER BRANCH (Q2-Q6) =====
-        {
-            id: "usage",
-            text: "What is your primary usage purpose?",
-            column: "Usage Purpose",
-            options: ["Study", "Work", "Gaming", "Content Creation", "General Use"],
-            type: "radio",
-            showIf: { ownership: "Yes" }
-        },
-        {
-            id: "brand",
-            text: "Which brand is your current laptop?",
-            column: "Preferred Brand",
-            options: ["HP", "Dell", "Lenovo", "Asus", "Acer", "Apple", "Other"],
-            type: "radio",
-            showIf: { ownership: "Yes" }
-        },
-        {
-            id: "satisfaction",
-            text: "How satisfied are you with your current laptop?",
-            column: "Satisfaction Level",
-            options: ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied", "Very Dissatisfied"],
-            type: "radio",
-            showIf: { ownership: "Yes" }
-        },
-        {
-            id: "problems",
-            text: "What problems do you face with your current laptop?",
-            column: "Current Laptop Problems",
-            options: ["Battery Life", "Heating Problem", "Slow Performance", "Display Issues", "None"],
-            type: "radio",
-            showIf: { ownership: "Yes" }
-        },
-        {
-            id: "feature",
-            text: "Which feature do you find most useful in your laptop?",
-            column: "Useful Features",
-            options: ["Battery Life", "Display Quality", "Keyboard Comfort", "Performance", "Portability"],
-            type: "radio",
-            showIf: { ownership: "Yes" }
-        },
-        // ===== BUYER BRANCH (Q2-Q6) =====
-        {
-            id: "budget",
-            text: "What is your budget for a new laptop?",
-            column: "Budget",
-            options: ["Under \u20B930,000", "\u20B930,000 \u2013 \u20B950,000", "\u20B950,000 \u2013 \u20B980,000", "Above \u20B980,000"],
-            type: "radio",
-            showIf: { ownership: "No" }
-        },
-        {
-            id: "brandBuyer",
-            text: "Which brand would you prefer?",
-            column: "Preferred Brand",
-            options: ["HP", "Dell", "Lenovo", "Asus", "Acer", "Apple", "Other"],
-            type: "radio",
-            showIf: { ownership: "No" }
-        },
-        {
-            id: "decision",
-            text: "What is your final decision factor when buying a laptop?",
-            column: "Final Decision Factor",
-            options: ["Price", "Brand", "Specifications", "Reviews", "Design"],
-            type: "radio",
-            showIf: { ownership: "No" }
-        },
-        {
-            id: "featureBuyer",
-            text: "Which feature matters most to you?",
-            column: "Useful Features",
-            options: ["Battery Life", "Display Quality", "Keyboard Comfort", "Performance", "Portability"],
-            type: "radio",
-            showIf: { ownership: "No" }
-        },
-        {
-            id: "usageBuyer",
-            text: "What will be your primary usage purpose?",
-            column: "Usage Purpose",
-            options: ["Study", "Work", "Gaming", "Content Creation", "General Use"],
-            type: "radio",
-            showIf: { ownership: "No" }
-        }
-    ];
-}
-
-function getVisibleQuestions() {
-    return questions.filter(function(q) {
-        if (!q.showIf) return true;
-        for (var key in q.showIf) {
-            if (answers[key] !== q.showIf[key]) return false;
-        }
-        return true;
-    });
-}
+var ALL_QUESTIONS = [
+    {
+        id: "ownership",
+        text: "Do you currently own a laptop?",
+        column: "Laptop Ownership",
+        options: ["Yes", "No"]
+    },
+    // ===== OWNER BRANCH =====
+    {
+        id: "usage",
+        text: "What is your primary usage purpose?",
+        column: "Usage Purpose",
+        options: ["Study", "Work", "Gaming", "Content Creation", "General Use"],
+        branch: "Yes"
+    },
+    {
+        id: "brand",
+        text: "Which brand is your current laptop?",
+        column: "Preferred Brand",
+        options: ["HP", "Dell", "Lenovo", "Asus", "Acer", "Apple", "Other"],
+        branch: "Yes"
+    },
+    {
+        id: "satisfaction",
+        text: "How satisfied are you with your current laptop?",
+        column: "Satisfaction Level",
+        options: ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied", "Very Dissatisfied"],
+        branch: "Yes"
+    },
+    {
+        id: "problems",
+        text: "What problems do you face with your current laptop?",
+        column: "Current Laptop Problems",
+        options: ["Battery Life", "Heating Problem", "Slow Performance", "Display Issues", "None"],
+        branch: "Yes"
+    },
+    {
+        id: "feature",
+        text: "Which feature do you find most useful in your laptop?",
+        column: "Useful Features",
+        options: ["Battery Life", "Display Quality", "Keyboard Comfort", "Performance", "Portability"],
+        branch: "Yes"
+    },
+    // ===== BUYER BRANCH =====
+    {
+        id: "budget",
+        text: "What is your budget for a new laptop?",
+        column: "Budget",
+        options: ["Under \u20B930,000", "\u20B930,000 \u2013 \u20B950,000", "\u20B950,000 \u2013 \u20B980,000", "Above \u20B980,000"],
+        branch: "No"
+    },
+    {
+        id: "brandBuyer",
+        text: "Which brand would you prefer?",
+        column: "Preferred Brand",
+        options: ["HP", "Dell", "Lenovo", "Asus", "Acer", "Apple", "Other"],
+        branch: "No"
+    },
+    {
+        id: "decision",
+        text: "What is your final decision factor when buying a laptop?",
+        column: "Final Decision Factor",
+        options: ["Price", "Brand", "Specifications", "Reviews", "Design"],
+        branch: "No"
+    },
+    {
+        id: "featureBuyer",
+        text: "Which feature matters most to you?",
+        column: "Useful Features",
+        options: ["Battery Life", "Display Quality", "Keyboard Comfort", "Performance", "Portability"],
+        branch: "No"
+    },
+    {
+        id: "usageBuyer",
+        text: "What will be your primary usage purpose?",
+        column: "Usage Purpose",
+        options: ["Study", "Work", "Gaming", "Content Creation", "General Use"],
+        branch: "No"
+    }
+];
 
 function startSurvey(email) {
-    userEmail = email;
-    questions = buildQuestions();
-    answers = {};
-    currentQuestion = 0;
+    surveyEmail = email;
+    surveyAnswers = {};
+    surveyStep = 0;
+    surveyQuestions = []; // Will be built after Q1 is answered
 
     showScreen("surveyArea");
-    renderQuestion();
+    // Show Q1 first (ownership question)
+    renderOwnershipQuestion();
 }
 
-function renderQuestion() {
-    var visible = getVisibleQuestions();
-    var total = visible.length;
-
-    if (currentQuestion >= total) {
-        handleSubmit();
-        return;
-    }
-
-    var q = visible[currentQuestion];
+function renderOwnershipQuestion() {
+    var q = ALL_QUESTIONS[0]; // ownership question
 
     // Update progress
-    var pct = ((currentQuestion + 1) / total) * 100;
-    document.getElementById("progressBar").style.width = pct + "%";
-    document.getElementById("progressText").textContent = "Question " + (currentQuestion + 1) + " of " + total;
+    document.getElementById("progressBar").style.width = "17%";
+    document.getElementById("progressText").textContent = "Question 1 of 6";
 
     // Question text
     document.getElementById("questionText").textContent = q.text;
@@ -413,13 +374,11 @@ function renderQuestion() {
     q.options.forEach(function(opt) {
         var div = document.createElement("div");
         div.className = "option";
-        if (answers[q.id] === opt) div.classList.add("selected");
 
         var radio = document.createElement("input");
         radio.type = "radio";
         radio.name = q.id;
         radio.value = opt;
-        radio.checked = (answers[q.id] === opt);
 
         var label = document.createElement("span");
         label.textContent = opt;
@@ -428,67 +387,127 @@ function renderQuestion() {
         div.appendChild(label);
 
         div.addEventListener("click", function() {
-            answers[q.id] = opt;
-            radio.checked = true;
-            // Update visual selection
+            // Clear previous selection
             var allOptions = optionsDiv.querySelectorAll(".option");
             allOptions.forEach(function(o) { o.classList.remove("selected"); });
             div.classList.add("selected");
+            radio.checked = true;
 
-            // If this is the branching question (ownership), re-render
-            // to update the visible questions list and buttons
-            if (q.id === "ownership") {
-                setTimeout(function() {
-                    renderQuestion();
-                }, 200);
-            }
+            // Save answer
+            surveyAnswers.ownership = opt;
+
+            // Build the question list based on this answer
+            buildBranchQuestions(opt);
+
+            // Show Next button
+            document.getElementById("nextBtn").style.display = "block";
+            document.getElementById("submitBtn").style.display = "none";
         });
 
         optionsDiv.appendChild(div);
     });
 
-    // Button visibility
-    var prevBtn = document.getElementById("prevBtn");
-    var nextBtn = document.getElementById("nextBtn");
-    var submitBtn = document.getElementById("submitBtn");
+    // Buttons: only Next, no Previous, no Submit
+    document.getElementById("prevBtn").style.display = "none";
+    document.getElementById("nextBtn").style.display = "block";
+    document.getElementById("submitBtn").style.display = "none";
+}
 
-    prevBtn.style.display = (currentQuestion > 0) ? "block" : "none";
-
-    // FIX: Always show Next on Q1 (ownership) since it's the branching question
-    // and more questions will appear after answering it
-    if (currentQuestion === 0 && q.id === "ownership" && answers.ownership) {
-        // Q1 answered - show Next (more questions are now visible)
-        nextBtn.style.display = "block";
-        submitBtn.style.display = "none";
-    } else if (currentQuestion === 0 && q.id === "ownership" && !answers.ownership) {
-        // Q1 not yet answered - still show Next (not Submit)
-        nextBtn.style.display = "block";
-        submitBtn.style.display = "none";
-    } else if (currentQuestion === total - 1) {
-        // Last question - show Submit
-        nextBtn.style.display = "none";
-        submitBtn.style.display = "block";
-    } else {
-        // Middle question - show Next
-        nextBtn.style.display = "block";
-        submitBtn.style.display = "none";
+function buildBranchQuestions(ownershipAnswer) {
+    surveyQuestions = [];
+    // Add all questions that match the branch
+    for (var i = 1; i < ALL_QUESTIONS.length; i++) {
+        if (ALL_QUESTIONS[i].branch === ownershipAnswer) {
+            surveyQuestions.push(ALL_QUESTIONS[i]);
+        }
     }
 }
 
-function nextQuestion() {
-    var visible = getVisibleQuestions();
-    var q = visible[currentQuestion];
-    if (!answers[q.id]) {
-        alert("Please select an option before proceeding.");
+function renderQuestion() {
+    // If we're at step 0, show the ownership question
+    if (surveyStep === 0) {
+        renderOwnershipQuestion();
         return;
     }
-    currentQuestion++;
+
+    // For steps 1+, use the branch questions
+    var qIndex = surveyStep - 1; // index into surveyQuestions
+    if (qIndex < 0 || qIndex >= surveyQuestions.length) return;
+
+    var q = surveyQuestions[qIndex];
+    var total = surveyQuestions.length + 1; // +1 for ownership question
+
+    // Update progress
+    var pct = ((surveyStep + 1) / total) * 100;
+    document.getElementById("progressBar").style.width = pct + "%";
+    document.getElementById("progressText").textContent = "Question " + (surveyStep + 1) + " of " + total;
+
+    // Question text
+    document.getElementById("questionText").textContent = q.text;
+
+    // Options
+    var optionsDiv = document.getElementById("options");
+    optionsDiv.innerHTML = "";
+
+    q.options.forEach(function(opt) {
+        var div = document.createElement("div");
+        div.className = "option";
+        if (surveyAnswers[q.id] === opt) div.classList.add("selected");
+
+        var radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = q.id;
+        radio.value = opt;
+        radio.checked = (surveyAnswers[q.id] === opt);
+
+        var label = document.createElement("span");
+        label.textContent = opt;
+
+        div.appendChild(radio);
+        div.appendChild(label);
+
+        div.addEventListener("click", function() {
+            var allOptions = optionsDiv.querySelectorAll(".option");
+            allOptions.forEach(function(o) { o.classList.remove("selected"); });
+            div.classList.add("selected");
+            radio.checked = true;
+            surveyAnswers[q.id] = opt;
+        });
+
+        optionsDiv.appendChild(div);
+    });
+
+    // Buttons
+    var isLast = (qIndex === surveyQuestions.length - 1);
+
+    document.getElementById("prevBtn").style.display = "block";
+    document.getElementById("nextBtn").style.display = isLast ? "none" : "block";
+    document.getElementById("submitBtn").style.display = isLast ? "block" : "none";
+}
+
+function nextQuestion() {
+    // Check if current question is answered
+    if (surveyStep === 0) {
+        if (!surveyAnswers.ownership) {
+            alert("Please select an option before proceeding.");
+            return;
+        }
+    } else {
+        var qIndex = surveyStep - 1;
+        var q = surveyQuestions[qIndex];
+        if (!surveyAnswers[q.id]) {
+            alert("Please select an option before proceeding.");
+            return;
+        }
+    }
+
+    surveyStep++;
     renderQuestion();
 }
 
 function prevQuestion() {
-    if (currentQuestion > 0) {
-        currentQuestion--;
+    if (surveyStep > 0) {
+        surveyStep--;
         renderQuestion();
     }
 }
@@ -498,9 +517,10 @@ function prevQuestion() {
 // =======================================
 
 function handleSubmit() {
-    var visible = getVisibleQuestions();
-    var q = visible[currentQuestion];
-    if (q && !answers[q.id]) {
+    // Check last question is answered
+    var qIndex = surveyStep - 1;
+    var q = surveyQuestions[qIndex];
+    if (!surveyAnswers[q.id]) {
         alert("Please select an option before submitting.");
         return;
     }
@@ -508,12 +528,15 @@ function handleSubmit() {
     // Build response data with column names
     var data = {
         action: "surveyResponse",
-        email: userEmail
+        email: surveyEmail
     };
 
-    questions.forEach(function(q) {
-        if (answers[q.id]) {
-            data[q.column] = answers[q.id];
+    // Map answers to column names
+    data["Laptop Ownership"] = surveyAnswers.ownership || "";
+
+    surveyQuestions.forEach(function(q) {
+        if (surveyAnswers[q.id]) {
+            data[q.column] = surveyAnswers[q.id];
         }
     });
 
@@ -537,7 +560,6 @@ function sendToGoogleSheets(data, onSuccess, onError) {
         body: JSON.stringify(data)
     })
     .then(function() {
-        // no-cors mode doesn't return readable response
         if (onSuccess) onSuccess();
     })
     .catch(function(error) {
