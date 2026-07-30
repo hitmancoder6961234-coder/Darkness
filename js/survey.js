@@ -33,6 +33,8 @@ function showSignInNew() {
 function showSignInAlready() {
     showScreen("signInAlready");
     document.getElementById("existingStatusMsg").style.display = "none";
+    // Clear the email field - don't auto-fill from localStorage
+    document.getElementById("existingEmail").value = "";
 }
 
 // =======================================
@@ -60,11 +62,6 @@ function submitNewRequest() {
         return;
     }
 
-    // Save to localStorage for later use
-    localStorage.setItem("pendingEmail", email);
-    localStorage.setItem("pendingName", name);
-    localStorage.setItem("pendingMobile", mobile);
-
     showStatus(msgEl, "info", "Submitting your request...");
 
     var data = {
@@ -76,16 +73,43 @@ function submitNewRequest() {
     };
 
     sendToGoogleSheets(data, function() {
-        showStatus(msgEl, "success",
-            "Your request has been submitted! Status: <strong>Pending</strong>.<br>" +
-            "You will receive an email once your request is approved.<br>" +
-            "You can come back anytime and use <strong>\"Sign in Already\"</strong> to check your status."
-        );
+        // After submitting, verify the actual status from the sheet
+        setTimeout(function() {
+            checkAccessFromSheet(email, function(status) {
+                if (status === "Accepted") {
+                    showStatus(msgEl, "warning",
+                        "Your email is already <strong>Approved</strong>! You can proceed to the survey.<br>" +
+                        "<button onclick='goToSurvey(\"" + email + "\")' style='margin-top:10px;padding:10px 20px;border-radius:8px;background:#2563eb;color:#fff;border:none;cursor:pointer;font-size:1rem'>Start Survey</button>"
+                    );
+                } else if (status === "Pending") {
+                    showStatus(msgEl, "success",
+                        "Your request has been submitted! Status: <strong>Pending</strong>.<br>" +
+                        "You will receive an email once your request is approved.<br>" +
+                        "You can come back anytime and use <strong>\"Sign in Already\"</strong> to check your status."
+                    );
+                } else {
+                    showStatus(msgEl, "success",
+                        "Your request has been submitted! Status: <strong>Pending</strong>.<br>" +
+                        "You will receive an email once your request is approved.<br>" +
+                        "You can come back anytime and use <strong>\"Sign in Already\"</strong> to check your status."
+                    );
+                }
+            }, function() {
+                showStatus(msgEl, "success",
+                    "Your request has been submitted! Status: <strong>Pending</strong>.<br>" +
+                    "You will receive an email once your request is approved."
+                );
+            });
+        }, 2000); // Wait 2 seconds for the sheet to update
     }, function() {
         showStatus(msgEl, "error",
             "There was an error submitting your request. Please try again."
         );
     });
+}
+
+function goToSurvey(email) {
+    startSurvey(email);
 }
 
 // =======================================
@@ -105,8 +129,6 @@ function checkExistingAccess() {
 
     checkAccessFromSheet(email, function(status) {
         if (status === "Accepted") {
-            // Save approved email
-            localStorage.setItem("approvedEmail", email);
             showStatus(msgEl, "success",
                 "Your access has been <strong>Approved</strong>! Starting survey..."
             );
@@ -117,6 +139,11 @@ function checkExistingAccess() {
             showStatus(msgEl, "warning",
                 "Your request is currently <strong>Pending</strong>.<br>" +
                 "Please wait for admin approval. You will receive an email once approved."
+            );
+        } else if (status === "Rejected") {
+            showStatus(msgEl, "error",
+                "Your request has been <strong>Rejected</strong>.<br>" +
+                "Please contact the admin for more information."
             );
         } else {
             showStatus(msgEl, "error",
@@ -169,11 +196,6 @@ function checkAccessFromSheet(email, onSuccess, onError) {
                 accessStatus = data.status;
             }
 
-            // Also save the name if provided
-            if (data.name) {
-                localStorage.setItem("approvedName", data.name);
-            }
-
             onSuccess(accessStatus);
         })
         .catch(function(error) {
@@ -187,6 +209,13 @@ function checkAccessFromSheet(email, onSuccess, onError) {
 // =======================================
 
 (function autoCheckFromURL() {
+    // Clear old localStorage data from previous versions
+    localStorage.removeItem("approvedEmail");
+    localStorage.removeItem("pendingEmail");
+    localStorage.removeItem("pendingName");
+    localStorage.removeItem("pendingMobile");
+    localStorage.removeItem("approvedName");
+
     var params = new URLSearchParams(window.location.search);
     var emailParam = params.get("email");
 
@@ -203,7 +232,6 @@ function checkAccessFromSheet(email, onSuccess, onError) {
         checkAccessFromSheet(emailParam, function(status) {
             var msgEl = document.getElementById("existingStatusMsg");
             if (status === "Accepted") {
-                localStorage.setItem("approvedEmail", emailParam);
                 showStatus(msgEl, "success",
                     "Your access has been <strong>Approved</strong>! Starting survey..."
                 );
@@ -231,12 +259,7 @@ function checkAccessFromSheet(email, onSuccess, onError) {
             );
         });
     } else {
-        // Check localStorage for previously approved email
-        var savedEmail = localStorage.getItem("approvedEmail");
-        if (savedEmail) {
-            // Auto-fill and show the sign-in already screen
-            document.getElementById("existingEmail").value = savedEmail;
-        }
+        // No URL parameter - show the choice screen (no auto-fill)
         showSignInChoice();
     }
 })();
@@ -411,6 +434,14 @@ function renderQuestion() {
             var allOptions = optionsDiv.querySelectorAll(".option");
             allOptions.forEach(function(o) { o.classList.remove("selected"); });
             div.classList.add("selected");
+
+            // If this is the branching question (ownership), re-render
+            // to update the visible questions list and buttons
+            if (q.id === "ownership") {
+                setTimeout(function() {
+                    renderQuestion();
+                }, 200);
+            }
         });
 
         optionsDiv.appendChild(div);
@@ -422,8 +453,26 @@ function renderQuestion() {
     var submitBtn = document.getElementById("submitBtn");
 
     prevBtn.style.display = (currentQuestion > 0) ? "block" : "none";
-    nextBtn.style.display = (currentQuestion < total - 1) ? "block" : "none";
-    submitBtn.style.display = (currentQuestion === total - 1) ? "block" : "none";
+
+    // FIX: Always show Next on Q1 (ownership) since it's the branching question
+    // and more questions will appear after answering it
+    if (currentQuestion === 0 && q.id === "ownership" && answers.ownership) {
+        // Q1 answered - show Next (more questions are now visible)
+        nextBtn.style.display = "block";
+        submitBtn.style.display = "none";
+    } else if (currentQuestion === 0 && q.id === "ownership" && !answers.ownership) {
+        // Q1 not yet answered - still show Next (not Submit)
+        nextBtn.style.display = "block";
+        submitBtn.style.display = "none";
+    } else if (currentQuestion === total - 1) {
+        // Last question - show Submit
+        nextBtn.style.display = "none";
+        submitBtn.style.display = "block";
+    } else {
+        // Middle question - show Next
+        nextBtn.style.display = "block";
+        submitBtn.style.display = "none";
+    }
 }
 
 function nextQuestion() {
@@ -471,8 +520,6 @@ function handleSubmit() {
     // Send to Google Sheets
     sendToGoogleSheets(data, function() {
         showScreen("thankYou");
-        // Clear stored email
-        localStorage.removeItem("approvedEmail");
     }, function() {
         alert("There was an error submitting your survey. Please try again.");
     });
