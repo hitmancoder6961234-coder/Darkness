@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Breathing Therapy App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(120deg,#0f2027,#203a43,#2c5364);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+}
+
+.container {
+  width: 900px;
+  background: rgba(255,255,255,0.08);
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+
+h1 { text-align:center; margin-bottom:30px; }
+.hidden { display:none; }
+
+.sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+  gap: 25px;
+}
+
+.card {
+  background: rgba(255,255,255,0.12);
+  padding: 25px;
+  border-radius: 18px;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.card:hover { transform: scale(1.06); }
+
+.page { text-align:center; }
+
+.ringBox {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  margin: 30px auto;
+}
+
+svg {
+  transform: rotate(-90deg);
+}
+
+circle {
+  fill: none;
+  stroke-width: 10;
+}
+
+.bg {
+  stroke: rgba(255,255,255,0.2);
+}
+
+.progress {
+  stroke: #1abc9c;
+  stroke-linecap: round;
+  stroke-dasharray: 754;
+  stroke-dashoffset: 754;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.circleText {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 46px;
+  font-weight: bold;
+}
+
+.timer {
+  font-size: 60px;
+}
+
+button {
+  padding: 12px 20px;
+  margin: 10px;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  cursor: pointer;
+  background: #1abc9c;
+  font-weight: bold;
+}
+button:hover { background:#16a085; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="home">
+<h1>🌿 Breathing Technique Therapy</h1>
+
+<div class="sections">
+  <div class="card" onclick="openPage('stressed')">
+    <h3>1. Stressed</h3>
+    <p>Inhale 4 • Hold 4 • Exhale 6 • Hold 2</p>
+  </div>
+
+  <div class="card" onclick="openPage('calm')">
+    <h3>2. Calm (Anger)</h3>
+    <p>Inhale 4 • Hold 7 • Exhale 8</p>
+  </div>
+
+  <div class="card" onclick="openPage('meditation')">
+    <h3>3. Meditation</h3>
+    <p>Inhale 4 • Exhale 8</p>
+  </div>
+
+  <div class="card" onclick="openPage('relaxation')">
+    <h3>4. Relaxation</h3>
+    <p>Inhale 4 • Hold 4 • Exhale 5 • Hold 4</p>
+  </div>
+</div>
+</div>
+
+<div id="page" class="hidden page">
+<h1 id="title"></h1>
+
+<div class="ringBox">
+  <svg width="280" height="280">
+    <circle class="bg" cx="140" cy="140" r="120"></circle>
+    <circle class="progress" id="progress" cx="140" cy="140" r="120"></circle>
+  </svg>
+
+  <div class="circleText" id="text">READY</div>
+</div>
+
+<div class="timer" id="timer">0</div>
+
+<button onclick="startBreathing()">Start</button>
+<button onclick="stopBreathing()">Stop</button>
+<button onclick="goHome()">Home</button>
+</div>
+
+</div>
+
+<script>
+let interval;
+let currentMode;
+
+const circumference = 2 * Math.PI * 120;
+
+const patterns = {
+  stressed: [
+    { text: "INHALE", time: 4 },
+    { text: "HOLD", time: 4 },
+    { text: "EXHALE", time: 6 },
+    { text: "HOLD", time: 2 }
+  ],
+  calm: [
+    { text: "INHALE", time: 4 },
+    { text: "HOLD", time: 7 },
+    { text: "EXHALE", time: 8 }
+  ],
+  meditation: [
+    { text: "INHALE", time: 4 },
+    { text: "EXHALE", time: 8 }
+  ],
+  relaxation: [
+    { text: "INHALE", time: 4 },
+    { text: "HOLD", time: 4 },
+    { text: "EXHALE", time: 5 },
+    { text: "HOLD", time: 4 }
+  ]
+};
+
+function openPage(mode) {
+  document.getElementById("home").classList.add("hidden");
+  document.getElementById("page").classList.remove("hidden");
+  currentMode = mode;
+  document.getElementById("title").innerText = mode.toUpperCase();
+}
+
+function goHome() {
+  stopBreathing();
+  document.getElementById("page").classList.add("hidden");
+  document.getElementById("home").classList.remove("hidden");
+}
+
+function startBreathing() {
+  stopBreathing();
+
+  const steps = patterns[currentMode];
+  const text = document.getElementById("text");
+  const timer = document.getElementById("timer");
+  const progress = document.getElementById("progress");
+
+  let stepIndex = 0;
+
+  function runStep() {
+    let step = steps[stepIndex];
+    let count = step.time;
+
+    text.innerText = step.text;
+    timer.innerText = count;
+
+    progress.style.transition = "none";
+    progress.style.strokeDashoffset = circumference;
+
+    setTimeout(() => {
+      progress.style.transition = `stroke-dashoffset ${step.time}s linear`;
+      progress.style.strokeDashoffset = 0;
+    }, 50);
+
+    interval = setInterval(() => {
+      count--;
+      timer.innerText = count;
+
+      if (count <= 0) {
+        clearInterval(interval);
+        stepIndex = (stepIndex + 1) % steps.length;
+        runStep();
+      }
+    }, 1000);
+  }
+
+  runStep();
+}
+
+function stopBreathing() {
+  clearInterval(interval);
+  document.getElementById("text").innerText = "READY";
+  document.getElementById("timer").innerText = "0";
+  document.getElementById("progress").style.strokeDashoffset = circumference;
+}
+</script>
+
+</body>
+</html>
