@@ -5,7 +5,7 @@
 
 // Google Apps Script Web App URL
 // Replace this with your deployed Apps Script URL after setup
-const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbziSAbx-MSDM8RM0_9Ccw5zG-cjb5_BmC9e8Qm5oX_RaVL4bPFWzpjqHLb1EUbrzzDJxA/exec";
+const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzyOxvR2YzfOMxc5PKJXHtwunslbu7W77CfPNL2zibI_LjX5GcCxi4u_s40wlHTLbMqKQ/exec";
 
 // =======================================
 // Question Data
