@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Dashboard | Laptop Market Research</title>
+
+    <link rel="stylesheet" href="css/dashboard.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+</head>
+
+<body>
+
+    <div class="dashboard-container">
+
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>Survey Analytics Dashboard</h1>
+            <p>Laptop Market Research - Live Results</p>
+            <div class="header-actions">
+                <a href="index.html" class="back-link">Back to Home</a>
+                <button id="refreshBtn" class="refresh-btn">Refresh Data</button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalResponses">0</div>
+                <div class="stat-label">Total Responses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="ownerCount">0</div>
+                <div class="stat-label">Laptop Owners</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="buyerCount">0</div>
+                <div class="stat-label">Prospective Buyers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="ownerPercent">0%</div>
+                <div class="stat-label">Owner Ratio</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+
+            <!-- Laptop Ownership -->
+            <div class="chart-card">
+                <h2>Laptop Ownership</h2>
+                <div class="chart-wrapper">
+                    <canvas id="ownershipChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Main Usage -->
+            <div class="chart-card">
+                <h2>Main Laptop Usage</h2>
+                <div class="chart-wrapper">
+                    <canvas id="usageChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Brand Preference -->
+            <div class="chart-card">
+                <h2>Brand Preference</h2>
+                <div class="chart-wrapper">
+                    <canvas id="brandChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Most Important Feature -->
+            <div class="chart-card">
+                <h2>Most Important Feature</h2>
+                <div class="chart-wrapper">
+                    <canvas id="featureChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Satisfaction Level -->
+            <div class="chart-card">
+                <h2>Satisfaction Level</h2>
+                <div class="chart-wrapper">
+                    <canvas id="satisfactionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Budget Range -->
+            <div class="chart-card">
+                <h2>Budget Range</h2>
+                <div class="chart-wrapper">
+                    <canvas id="budgetChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Buying Decision Factor -->
+            <div class="chart-card">
+                <h2>Buying Decision Factors</h2>
+                <div class="chart-wrapper">
+                    <canvas id="decisionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Common Problems -->
+            <div class="chart-card">
+                <h2>Common Laptop Problems</h2>
+                <div class="chart-wrapper">
+                    <canvas id="problemsChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- No Data Message -->
+        <div id="noDataMessage" class="no-data">
+            <h2>No Survey Data Available</h2>
+            <p>Complete the survey first to see analytics here.</p>
+            <a href="survey.html" class="survey-link">Take Survey</a>
+        </div>
+
+    </div>
+
+    <script src="js/dashboard.js"></script>
+
+</body>
+
+</html>

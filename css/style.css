@@ -11,6 +11,9 @@ nav a{text-decoration:none;color:#fff}
 .secondary{border:1px solid #4ea3ff;color:#4ea3ff}
 .btn:hover,.primary:hover{background:#1d4ed8;transform:translateY(-2px)}
 .secondary:hover{background:#4ea3ff;color:#08111f}
+.btn-secondary{padding:10px 20px;border-radius:10px;text-decoration:none;display:inline-block;transition:.3s;border:1px solid #4ea3ff;color:#4ea3ff;font-size:.9rem}
+.btn-secondary:hover{background:#4ea3ff;color:#08111f}
+.nav-actions{display:flex;gap:12px;align-items:center}
 .hero{min-height:90vh;display:flex;align-items:center;justify-content:center;padding:60px 8%;background:linear-gradient(135deg,#07111f,#10294d)}
 .hero-content{max-width:800px;text-align:center}
 .hero h1{font-size:3rem;margin-bottom:20px}
