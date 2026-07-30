@@ -69,13 +69,13 @@ function onStatusChange(e) {
   var email = sheet.getRange(row, 2).getValue();
   if (!email) return;
 
-  // Send approval email
+  // Send approval email with direct survey link
+  var surveyLink = "https://hitmancoder6961234-coder.github.io/Darkness/survey.html?email=" + encodeURIComponent(email);
   var subject = "Laptop Market Research - Access Approved!";
   var body = "Hello " + name + ",\n\n" +
     "Great news! Your request to participate in the Laptop Market Research Survey has been approved!\n\n" +
-    "Take the survey at:\n" +
-    "https://hitmancoder6961234-coder.github.io/Darkness/survey.html\n\n" +
-    "Just enter your email (" + email + ") on the survey page and you'll be able to start immediately.\n\n" +
+    "Click the link below to start the survey directly:\n" +
+    surveyLink + "\n\n" +
     "Thank you!\n" +
     "Laptop Market Research Team";
 
@@ -208,8 +208,9 @@ function approveSelectedAndSendEmail() {
   if (!email) { SpreadsheetApp.getUi().alert("No email in this row."); return; }
   if (currentStatus === "Accepted") { SpreadsheetApp.getUi().alert("Already approved!"); return; }
   sheet.getRange(row, 6).setValue("Accepted");
+  var surveyLink = "https://hitmancoder6961234-coder.github.io/Darkness/survey.html?email=" + encodeURIComponent(email);
   var subject = "Laptop Market Research - Access Approved!";
-  var body = "Hello " + name + ",\n\nYour request to participate in the Laptop Market Research Survey has been approved!\n\nTake the survey at:\nhttps://hitmancoder6961234-coder.github.io/Darkness/survey.html\n\nJust enter your email (" + email + ") on the survey page.\n\nThank you!\nLaptop Market Research Team";
+  var body = "Hello " + name + ",\n\nYour request to participate in the Laptop Market Research Survey has been approved!\n\nClick the link below to start the survey directly:\n" + surveyLink + "\n\nThank you!\nLaptop Market Research Team";
   try {
     MailApp.sendEmail({ to: email, subject: subject, body: body });
     SpreadsheetApp.getUi().alert("Approved & email sent to " + email + "!");

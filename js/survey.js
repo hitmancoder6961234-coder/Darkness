@@ -137,6 +137,10 @@ let userEmail = "";
 (function checkUserAccess() {
     var surveyCard = document.getElementById("surveyCard");
 
+    // Check if coming from approval email link (survey.html?email=xxx)
+    var urlParams = new URLSearchParams(window.location.search);
+    var emailFromLink = urlParams.get("email");
+
     // Check if already approved (from previous session)
     var savedEmail = localStorage.getItem("approvedEmail");
     var savedName = localStorage.getItem("approvedName");
@@ -148,7 +152,12 @@ let userEmail = "";
         return;
     }
 
-    // Check for pending email from request form
+    // If coming from email link, auto-check that email
+    if (emailFromLink) {
+        localStorage.setItem("pendingEmail", emailFromLink);
+    }
+
+    // Check for pending email from request form or email link
     var pendingEmail = localStorage.getItem("pendingEmail") || "";
     var pendingName = localStorage.getItem("pendingName") || "";
 
@@ -166,7 +175,7 @@ let userEmail = "";
         '<a href="request.html" style="color:#60a5fa; text-decoration:underline;">Don\'t have access? Request here</a>' +
         '</div></div>';
 
-    // Auto-check if there's a pending email from request form
+    // Auto-check if there's a pending email from request form or email link
     if (pendingEmail) {
         setTimeout(function() { checkAccessFromSheet(); }, 500);
     }

@@ -2,148 +2,114 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Request Access | Laptop Market Research</title>
-
     <link rel="stylesheet" href="css/request.css">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
-
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
 </head>
 
 <body>
-
     <div class="container">
+        <div class="form-box" id="mainCard">
 
-        <div class="form-box">
+            <!-- Step 1: Choose Sign In Option -->
+            <div id="step1">
+                <h1>Survey Access</h1>
+                <p>Choose an option to continue</p>
 
-            <h1>Request Survey Access</h1>
+                <div style="display:flex; flex-direction:column; gap:15px; margin-top:20px;">
+                    <button class="choice-btn" onclick="showNewSignIn()" style="padding:20px; font-size:1.05rem; display:flex; align-items:center; gap:12px; justify-content:center;">
+                        <span style="font-size:1.5rem;">🆕</span>
+                        <span>Sign In as New User</span>
+                    </button>
 
-            <p>
-                Complete the form below to request access to the Laptop Market Research Survey.
-            </p>
-
-            <form id="requestForm">
-
-                <div class="input-box">
-
-                    <label>Full Name</label>
-
-                    <input
-                        type="text"
-                        id="name"
-                        placeholder="Enter your full name"
-                        required>
-
+                    <button class="choice-btn" onclick="showReturningSignIn()" style="padding:20px; font-size:1.05rem; display:flex; align-items:center; gap:12px; justify-content:center; background:#0f766e;">
+                        <span style="font-size:1.5rem;">🔑</span>
+                        <span>Already Signed In</span>
+                    </button>
                 </div>
 
-                <div class="input-box">
-
-                    <label>Email Address</label>
-
-                    <input
-                        type="email"
-                        id="email"
-                        placeholder="Enter your email"
-                        required>
-
+                <div style="text-align:center; margin-top:25px;">
+                    <a href="index.html">← Back to Home</a>
                 </div>
-
-                <div class="input-box">
-
-                    <label>Phone Number</label>
-
-                    <input
-                        type="tel"
-                        id="phone"
-                        placeholder="Enter your phone number"
-                        required>
-
-                </div>
-
-                <div class="input-box">
-
-                    <label>Occupation</label>
-
-                    <select id="occupation" required>
-
-                        <option value="">Select</option>
-
-                        <option>Student</option>
-
-                        <option>Employee</option>
-
-                        <option>Business Owner</option>
-
-                        <option>Freelancer</option>
-
-                        <option>Other</option>
-
-                    </select>
-
-                </div>
-
-                <div class="input-box">
-
-                    <label>Purpose</label>
-
-                    <textarea
-                        id="purpose"
-                        rows="4"
-                        placeholder="Why do you want to participate?"
-                        required></textarea>
-
-                </div>
-
-                <button type="submit">
-
-                    Submit Request
-
-                </button>
-
-            </form>
-
-            <div id="successMessage">
-
-                <h2>Request Submitted Successfully!</h2>
-
-                <p>
-
-                    Your request has been received.
-                    You can now proceed to the survey.
-
-                </p>
-
-                <a href="survey.html" style="display:inline-block; margin-top:18px; padding:14px 28px; background:#2563eb; color:#fff; border-radius:10px; text-decoration:none; font-weight:600;">
-
-                    Start Survey
-
-                </a>
-
             </div>
 
-            <br>
+            <!-- Step 2A: New User Sign In -->
+            <div id="step2New" style="display:none;">
+                <h1>New User Sign In</h1>
+                <p>Fill in your details to request survey access</p>
 
-            <a href="index.html">
+                <form id="newUserForm">
+                    <div class="input-box">
+                        <label>Full Name *</label>
+                        <input type="text" id="newName" placeholder="Enter your full name" required>
+                    </div>
 
-                ← Back to Home
+                    <div class="input-box">
+                        <label>Email Address *</label>
+                        <input type="email" id="newEmail" placeholder="Enter your email" required>
+                    </div>
 
-            </a>
+                    <div class="input-box">
+                        <label>Mobile Number *</label>
+                        <input type="tel" id="newPhone" placeholder="Enter your mobile number" required>
+                    </div>
+
+                    <div class="input-box">
+                        <label>Purpose <span style="color:#94a3b8; font-weight:400;">(Optional)</span></label>
+                        <textarea id="newPurpose" rows="3" placeholder="Why do you want to participate?"></textarea>
+                    </div>
+
+                    <button type="submit">Submit Request</button>
+                </form>
+
+                <div style="text-align:center; margin-top:15px;">
+                    <a href="#" onclick="showStep1(); return false;" style="font-size:0.9rem;">← Go Back</a>
+                </div>
+            </div>
+
+            <!-- Step 2B: Returning User -->
+            <div id="step2Return" style="display:none;">
+                <h1>Already Signed In</h1>
+                <p>Enter your email to check your access status</p>
+
+                <div style="max-width:400px; margin:0 auto;">
+                    <div class="input-box">
+                        <label>Email Address</label>
+                        <input type="email" id="returnEmail" placeholder="Enter your email">
+                    </div>
+
+                    <button onclick="checkMyStatus()">Check Status</button>
+
+                    <div id="statusResult" style="display:none; margin-top:20px; padding:18px; border-radius:10px; text-align:center;"></div>
+                </div>
+
+                <div style="text-align:center; margin-top:15px;">
+                    <a href="#" onclick="showStep1(); return false;" style="font-size:0.9rem;">← Go Back</a>
+                </div>
+            </div>
+
+            <!-- Success Message (after new user submits) -->
+            <div id="successMessage" style="display:none;">
+                <h2 style="text-align:center;">Request Submitted!</h2>
+                <p style="text-align:center; color:#cbd5e1; margin-top:10px;">
+                    Your access request is currently <strong style="color:#fbbf24;">Pending</strong>.
+                    You'll receive an email once approved.
+                </p>
+                <div style="text-align:center; margin-top:20px;">
+                    <a href="index.html" style="display:inline-block; padding:14px 28px; background:#2563eb; color:#fff; border-radius:10px; text-decoration:none; font-weight:600;">
+                        Back to Home
+                    </a>
+                </div>
+            </div>
 
         </div>
-
     </div>
 
     <script src="js/request.js"></script>
-
 </body>
 
 </html>
