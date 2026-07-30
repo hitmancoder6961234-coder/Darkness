@@ -51,6 +51,10 @@ form.addEventListener("submit", function (event) {
 
     // Store Request Locally
     localStorage.setItem("requestData", JSON.stringify(userData));
+
+    // Save email for survey page to auto-check
+    localStorage.setItem("pendingEmail", userData.email);
+    localStorage.setItem("pendingName", userData.name);
 });
 
 // =======================================

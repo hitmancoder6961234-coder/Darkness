@@ -147,12 +147,17 @@ const submitButton = document.getElementById("submitBtn");
     const savedEmail = localStorage.getItem("approvedEmail");
     const savedName = localStorage.getItem("approvedName");
 
+    // If already approved, start survey directly
     if (savedEmail && savedName) {
         userName = savedName;
         userEmail = savedEmail;
         startSurvey();
         return;
     }
+
+    // Check if user has a pending email from request form
+    const pendingEmail = localStorage.getItem("pendingEmail") || "";
+    const pendingName = localStorage.getItem("pendingName") || "";
 
     // Show email check screen
     const surveyCard = document.querySelector(".survey-card");
@@ -162,7 +167,7 @@ const submitButton = document.getElementById("submitBtn");
             Enter your email to check if you have been approved to take the survey.
         </p>
         <div style="max-width:400px; margin:0 auto;">
-            <input type="email" id="checkEmail" placeholder="Enter your email address"
+            <input type="email" id="checkEmail" placeholder="Enter your email address" value="${pendingEmail}"
                 style="width:100%; padding:14px 18px; border-radius:10px; border:1px solid #334155; background:#1e293b; color:#f1f5f9; font-size:16px; margin-bottom:15px; box-sizing:border-box;">
             <button id="checkAccessBtn" onclick="checkAccessFromSheet()"
                 style="width:100%; padding:14px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer;">
@@ -174,6 +179,11 @@ const submitButton = document.getElementById("submitBtn");
             </div>
         </div>
     `;
+
+    // Auto-check if there's a pending email from the request form
+    if (pendingEmail) {
+        setTimeout(function() { checkAccessFromSheet(); }, 500);
+    }
 })();
 
 // Check access from Google Sheets
