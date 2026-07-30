@@ -4,3 +4,4 @@ The quiz is divided into **two rounds**, each with a different topic. After the 
 
 This project also helps beginners learn the basic roles of **HTML** for creating the webpage structure, **CSS** for designing the appearance, and **JavaScript** for adding functionality such as changing questions, checking answers, and calculating the score. Overall, it is a simple and practical project for understanding the basics of web development.
 
+
