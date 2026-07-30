@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz Game</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #020024, #090979, #00d4ff);
+      background-size: 400% 400%;
+      animation: bgMove 12s ease infinite;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    @keyframes bgMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .screen {
+      width: 90%;
+      max-width: 900px;
+      background: rgba(7,21,47,0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 0 35px gold;
+      text-align: center;
+    }
+
+    h1 { color: gold; }
+
+    .intro h1 {
+      font-size: 48px;
+      margin-bottom: 40px;
+    }
+
+    button {
+      padding: 15px 40px;
+      border: none;
+      border-radius: 30px;
+      background: gold;
+      font-size: 18px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 10px;
+      box-shadow: 0 6px 0 #bfa100;
+    }
+
+    #game, #intro2, #end { display: none; }
+
+    .topbar {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+      font-size: 20px;
+      color: gold;
+    }
+
+    .question {
+      font-size: 22px;
+      margin-bottom: 25px;
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .option {
+      background: radial-gradient(circle at top, #1b4fbf, #03153a);
+      border: 2px solid #f5c542;
+      border-radius: 30px;
+      padding: 12px;
+      cursor: pointer;
+      user-select: none;
+      transition: 0.3s;
+    }
+
+    .option:hover { background: gold; color: #000; }
+    .selected { background: gold; color: #000; }
+    .correct { background: #00ff3b !important; color:#000; box-shadow: 0 0 20px #00ff3b; font-weight: bold; }
+    .wrong { background: #ff1e1e !important; color:#fff; box-shadow: 0 0 20px #ff1e1e; font-weight: bold; }
+
+    #controls { margin-top: 20px; }
+  </style>
+</head>
+
+<body>
+
+  <div class="screen intro" id="intro1">
+    <h1>SUSTAINABLE PRACTICES IN ANCIENT TIMES</h1>
+    <button id="start1">NEXT</button>
+  </div>
+
+  <div class="screen" id="game">
+    <div class="topbar">
+      <div id="score">Score: 0</div>
+    </div>
+
+    <div class="question" id="question"></div>
+
+    <div class="options">
+      <div class="option" data-i="0"></div>
+      <div class="option" data-i="1"></div>
+      <div class="option" data-i="2"></div>
+      <div class="option" data-i="3"></div>
+    </div>
+
+    <div id="controls">
+      <button id="prevBtn">Previous</button>
+      <button id="confirmBtn">Confirm</button>
+      <button id="nextBtn">Next</button>
+    </div>
+  </div>
+
+  <div class="screen intro" id="intro2">
+    <h1>YOGA , PRANAYAM AND MEDITATION</h1>
+    <button id="start2">START</button>
+  </div>
+
+  <div class="screen intro" id="end">
+    <h1>THANK YOU</h1>
+    <p style="font-size:22px">Quiz Completed.</p>
+  </div>
+
+<script>
+const round1 = [
+ { q:"Which idea best explains the human–nature relationship?", o:["Dominate nature","Use only for humans","Maintain balance","Replace nature"], a:2 },
+ { q:"Sustainability in ancient times focused on:", o:["Industry","Short term","Harmony with nature","Chemicals"], a:2 },
+ { q:"Ancient Indian farmers used:", o:["Chemical","Organic","Factory","Machine"], a:1 },
+ { q:"Natural fertilizer used was:", o:["Plastic","Cow dung","Chemical","Petrol"], a:1 },
+ { q:"Ancient rain system was:", o:["Dams","Pipelines","Rainwater harvesting","Wells"], a:2 },
+ { q:"Baolis and Vavs were for:", o:["Farming","Storing water","Trading","Housing"], a:1 },
+ { q:"Sacred groves were:", o:["Government","Industrial","Religious","Timber"], a:2 },
+ { q:"Forest sustainability ensured by:", o:["Free cutting","Limited timber","Clear forests","Export"], a:1 },
+ { q:"Ancient waste was:", o:["Burnt","Buried","Biodegradable reused","Thrown"], a:2 },
+ { q:"Indus drainage helped to:", o:["Store water","Prevent disease","Rainfall","Stop recharge"], a:1 },
+ { q:"Eco architecture benefit:", o:["Look","Recycle","1000yrs","Machines"], a:1 },
+ { q:"Heat reduction by:", o:["Glass","Thin walls","Thick walls","Metal"], a:2 },
+ { q:"Biodiversity provides:", o:["Oxygen","Food","Food medicine balance","Shelter"], a:2 },
+ { q:"Biodiversity conservation:", o:["Pollution","Weakens","Long-term use","Remove species"], a:2 }
+];
+
+const round2 = [
+ { q:"Which asana improves balance?", o:["Bhujangasana","Tadasana","Vrikshasana","Shavasana"], a:2 },
+ { q:"Which pranayama calms mind?", o:["Kapalbhati","Anulom Vilom","Bhastrika","Surya"], a:1 },
+ { q:"Exercise for heart?", o:["Sit","Run","Sleep","TV"], a:1 },
+ { q:"Asana for back pain?", o:["Bhujangasana","Padmasana","Vajrasana","Shavasana"], a:0 },
+ { q:"Improves breathing?", o:["Skip meals","Pranayama","Mobile","Rest"], a:1 }
+];
+
+let currentRound = round1;
+let index = 0;
+let score = 0;
+let locked = false;
+let selectedIndex = null;
+
+const intro1 = document.getElementById('intro1');
+const intro2 = document.getElementById('intro2');
+const game = document.getElementById('game');
+const end = document.getElementById('end');
+const questionBox = document.getElementById('question');
+const scoreBox = document.getElementById('score');
+const options = document.querySelectorAll('.option');
+
+function load(){
+ locked=false;
+ selectedIndex=null;
+ questionBox.innerText=currentRound[index].q;
+ options.forEach((btn,i)=>{
+   btn.className='option';
+   btn.innerText=String.fromCharCode(65+i)+'. '+currentRound[index].o[i];
+ });
+ scoreBox.innerText='Score: '+score;
+}
+
+document.getElementById('start1').onclick=()=>{intro1.style.display='none';game.style.display='block';load();};
+document.getElementById('start2').onclick=()=>{intro2.style.display='none';game.style.display='block';load();};
+
+options.forEach(btn=>{
+ btn.onclick=()=>{
+   if(locked) return;
+   options.forEach(b=>b.classList.remove('selected'));
+   btn.classList.add('selected');
+   selectedIndex=Number(btn.dataset.i);
+ };
+});
+
+document.getElementById('confirmBtn').onclick=()=>{
+ if(locked||selectedIndex===null) return;
+ locked=true;
+ const correct=currentRound[index].a;
+ if(selectedIndex===correct){options[correct].classList.add('correct');score++;}
+ else{options[selectedIndex].classList.add('wrong');options[correct].classList.add('correct');}
+ scoreBox.innerText='Score: '+score;
+};
+
+document.getElementById('nextBtn').onclick=()=>{
+ if(!locked) return;
+ index++;
+ if(index>=currentRound.length){
+   if(currentRound===round1){game.style.display='none';intro2.style.display='block';currentRound=round2;index=0;return;}
+   else{game.style.display='none';end.style.display='block';return;}
+ }
+ load();
+};
+
+document.getElementById('prevBtn').onclick=()=>{
+ if(index===0) return;
+ index--;
+ load();
+};
+</script>
+
+</body>
+</html>
