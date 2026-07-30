@@ -7,7 +7,7 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Dashboard | Laptop Market Research</title>
+    <title>Admin Dashboard | Laptop Market Research</title>
 
     <link rel="stylesheet" href="css/dashboard.css">
 
@@ -15,7 +15,7 @@
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
@@ -27,38 +27,92 @@
 
         <!-- Header -->
         <div class="dashboard-header">
-            <h1>Survey Analytics Dashboard</h1>
-            <p>Laptop Market Research - Live Results</p>
-            <div class="header-actions">
-                <a href="index.html" class="back-link">Back to Home</a>
-                <button id="refreshBtn" class="refresh-btn">Refresh Data</button>
+            <div class="header-top">
+                <div class="header-text">
+                    <h1>Admin Dashboard</h1>
+                    <p>Laptop Market Research - Live Analytics</p>
+                </div>
+                <div class="header-actions">
+                    <a href="index.html" class="back-link">&#8592; Back to Home</a>
+                    <button id="refreshBtn" class="refresh-btn" title="Refresh Data">
+                        <span class="refresh-icon">&#8635;</span> Refresh
+                    </button>
+                    <div class="auto-refresh-toggle">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="autoRefreshToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">Auto-refresh</span>
+                    </div>
+                    <div class="last-updated" id="lastUpdated">Last updated: --</div>
+                </div>
             </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingMessage" class="loading-message">
+            <div class="spinner"></div>
+            <p>Loading data from Google Sheets...</p>
         </div>
 
         <!-- Stats Cards -->
-        <div class="stats-grid">
+        <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
-                <div class="stat-number" id="totalResponses">0</div>
-                <div class="stat-label">Total Responses</div>
+                <div class="stat-icon icon-blue">&#9993;</div>
+                <div class="stat-info">
+                    <div class="stat-number" id="totalRequests">0</div>
+                    <div class="stat-label">Total Requests</div>
+                </div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="ownerCount">0</div>
-                <div class="stat-label">Laptop Owners</div>
+                <div class="stat-icon icon-green">&#10003;</div>
+                <div class="stat-info">
+                    <div class="stat-number" id="approvedUsers">0</div>
+                    <div class="stat-label">Approved Users</div>
+                </div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="buyerCount">0</div>
-                <div class="stat-label">Prospective Buyers</div>
+                <div class="stat-icon icon-yellow">&#9203;</div>
+                <div class="stat-info">
+                    <div class="stat-number" id="pendingRequests">0</div>
+                    <div class="stat-label">Pending Requests</div>
+                </div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="ownerPercent">0%</div>
-                <div class="stat-label">Owner Ratio</div>
+                <div class="stat-icon icon-red">&#10007;</div>
+                <div class="stat-info">
+                    <div class="stat-number" id="rejectedRequests">0</div>
+                    <div class="stat-label">Rejected Requests</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-purple">&#9783;</div>
+                <div class="stat-info">
+                    <div class="stat-number" id="totalResponses">0</div>
+                    <div class="stat-label">Total Responses</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-cyan">&#9881;</div>
+                <div class="stat-info">
+                    <div class="stat-number" id="completionRate">0%</div>
+                    <div class="stat-label">Completion Rate</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-orange">&#9201;</div>
+                <div class="stat-info">
+                    <div class="stat-number" id="avgCompletionTime">0s</div>
+                    <div class="stat-label">Avg Completion Time</div>
+                </div>
             </div>
         </div>
 
-        <!-- Charts Grid -->
-        <div class="charts-grid">
+        <!-- Charts Section -->
+        <div class="section-title">Survey Analytics</div>
+        <div class="charts-grid" id="chartsGrid">
 
-            <!-- Laptop Ownership -->
+            <!-- 1. Laptop Ownership -->
             <div class="chart-card">
                 <h2>Laptop Ownership</h2>
                 <div class="chart-wrapper">
@@ -66,31 +120,31 @@
                 </div>
             </div>
 
-            <!-- Main Usage -->
+            <!-- 2. Usage Purpose -->
             <div class="chart-card">
-                <h2>Main Laptop Usage</h2>
+                <h2>Usage Purpose</h2>
                 <div class="chart-wrapper">
                     <canvas id="usageChart"></canvas>
                 </div>
             </div>
 
-            <!-- Brand Preference -->
+            <!-- 3. Useful Features -->
             <div class="chart-card">
-                <h2>Brand Preference</h2>
+                <h2>Useful Features</h2>
                 <div class="chart-wrapper">
-                    <canvas id="brandChart"></canvas>
+                    <canvas id="featuresChart"></canvas>
                 </div>
             </div>
 
-            <!-- Most Important Feature -->
+            <!-- 4. Current Laptop Problems -->
             <div class="chart-card">
-                <h2>Most Important Feature</h2>
+                <h2>Current Laptop Problems</h2>
                 <div class="chart-wrapper">
-                    <canvas id="featureChart"></canvas>
+                    <canvas id="problemsChart"></canvas>
                 </div>
             </div>
 
-            <!-- Satisfaction Level -->
+            <!-- 5. Satisfaction Level -->
             <div class="chart-card">
                 <h2>Satisfaction Level</h2>
                 <div class="chart-wrapper">
@@ -98,36 +152,128 @@
                 </div>
             </div>
 
-            <!-- Budget Range -->
+            <!-- 6. Improvement Needed -->
             <div class="chart-card">
-                <h2>Budget Range</h2>
+                <h2>Improvement Needed</h2>
+                <div class="chart-wrapper">
+                    <canvas id="improvementChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 7. Upgrade Frequency -->
+            <div class="chart-card">
+                <h2>Upgrade Frequency</h2>
+                <div class="chart-wrapper">
+                    <canvas id="upgradeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 8. Preferred Brand -->
+            <div class="chart-card">
+                <h2>Preferred Brand</h2>
+                <div class="chart-wrapper">
+                    <canvas id="brandChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 9. Buying Factor -->
+            <div class="chart-card">
+                <h2>Buying Factor</h2>
+                <div class="chart-wrapper">
+                    <canvas id="buyingFactorChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 10. Recommended Laptop -->
+            <div class="chart-card">
+                <h2>Recommended Laptop</h2>
+                <div class="chart-wrapper">
+                    <canvas id="recommendedChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 11. Expected Laptop Life -->
+            <div class="chart-card">
+                <h2>Expected Laptop Life</h2>
+                <div class="chart-wrapper">
+                    <canvas id="expectedLifeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 12. Budget -->
+            <div class="chart-card">
+                <h2>Budget</h2>
                 <div class="chart-wrapper">
                     <canvas id="budgetChart"></canvas>
                 </div>
             </div>
 
-            <!-- Buying Decision Factor -->
+            <!-- 13. Screen Size -->
             <div class="chart-card">
-                <h2>Buying Decision Factors</h2>
+                <h2>Screen Size</h2>
+                <div class="chart-wrapper">
+                    <canvas id="screenSizeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 14. Preferred Laptop -->
+            <div class="chart-card">
+                <h2>Preferred Laptop</h2>
+                <div class="chart-wrapper">
+                    <canvas id="preferredLaptopChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 15. Buying Place -->
+            <div class="chart-card">
+                <h2>Buying Place</h2>
+                <div class="chart-wrapper">
+                    <canvas id="buyingPlaceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 16. Final Decision Factor -->
+            <div class="chart-card">
+                <h2>Final Decision Factor</h2>
                 <div class="chart-wrapper">
                     <canvas id="decisionChart"></canvas>
                 </div>
             </div>
 
-            <!-- Common Problems -->
-            <div class="chart-card">
-                <h2>Common Laptop Problems</h2>
-                <div class="chart-wrapper">
-                    <canvas id="problemsChart"></canvas>
-                </div>
-            </div>
+        </div>
 
+        <!-- Recent Responses Table -->
+        <div class="section-title">Recent Responses</div>
+        <div class="table-section" id="tableSection">
+            <div class="table-controls">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search by name or email...">
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table" id="responsesTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-column="Name">Name <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Email">Email <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Laptop Ownership">Laptop Ownership <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Timestamp">Submission Date <span class="sort-arrow">&#8597;</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="pagination">
+                <button id="prevBtn" class="page-btn" disabled>Previous</button>
+                <span id="pageInfo" class="page-info">Page 1 of 1</span>
+                <button id="nextBtn" class="page-btn" disabled>Next</button>
+            </div>
         </div>
 
         <!-- No Data Message -->
         <div id="noDataMessage" class="no-data">
-            <h2>No Survey Data Available</h2>
-            <p>Complete the survey first to see analytics here.</p>
+            <div class="no-data-icon">&#128202;</div>
+            <h2>No Data Available</h2>
+            <p>Survey responses will appear here once participants complete the survey.</p>
             <a href="survey.html" class="survey-link">Take Survey</a>
         </div>
 
