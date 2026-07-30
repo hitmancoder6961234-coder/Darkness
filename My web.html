@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Professional Breathing App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(120deg,#0f2027,#203a43,#2c5364);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+}
+
+.container {
+  width: 900px;
+  background: rgba(255,255,255,0.08);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+  gap: 20px;
+}
+
+.card {
+  background: rgba(255,255,255,0.1);
+  padding: 20px;
+  border-radius: 15px;
+  text-align: center;
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: scale(1.05);
+}
+
+.card h3 {
+  margin-bottom: 10px;
+}
+
+.card p {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+button {
+  margin-top: 10px;
+  padding: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  background: #1abc9c;
+  font-weight: bold;
+}
+
+button:hover {
+  background: #16a085;
+}
+
+.center {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.circle {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: 5px solid #1abc9c;
+  margin: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 22px;
+}
+
+.timer {
+  margin-top: 12px;
+  font-size: 18px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>🌿 Breathing Technique Therapy</h1>
+
+<div class="sections">
+
+<div class="card">
+<h3>1. Stressed</h3>
+<p>Inhale 4s • Hold 4s • Exhale 6s • Hold 2s</p>
+<button onclick="startBreathing('stressed')">Start</button>
+</div>
+
+<div class="card">
+<h3>2. Calm (Anger)</h3>
+<p>Inhale 4s • Hold 7s • Exhale 8s</p>
+<button onclick="startBreathing('calm')">Start</button>
+</div>
+
+<div class="card">
+<h3>3. Meditation</h3>
+<p>Inhale 4s • Exhale 8s</p>
+<button onclick="startBreathing('meditation')">Start</button>
+</div>
+
+<div class="card">
+<h3>4. Relaxation</h3>
+<p>Inhale 4s • Hold 4s • Exhale 5s • Hold 4s</p>
+<button onclick="startBreathing('relaxation')">Start</button>
+</div>
+
+</div>
+
+<div class="center">
+  <div class="circle" id="text">Ready</div>
+  <div class="timer" id="timer">0 s</div>
+  <button style="width:200px;margin-top:15px" onclick="stopBreathing()">Stop</button>
+</div>
+
+</div>
+
+<script>
+let interval;
+
+const patterns = {
+  stressed: [
+    { text: "Inhale", time: 4 },
+    { text: "Hold", time: 4 },
+    { text: "Exhale", time: 6 },
+    { text: "Hold", time: 2 }
+  ],
+  calm: [
+    { text: "Inhale", time: 4 },
+    { text: "Hold", time: 7 },
+    { text: "Exhale", time: 8 }
+  ],
+  meditation: [
+    { text: "Inhale", time: 4 },
+    { text: "Exhale", time: 8 }
+  ],
+  relaxation: [
+    { text: "Inhale", time: 4 },
+    { text: "Hold", time: 4 },
+    { text: "Exhale", time: 5 },
+    { text: "Hold", time: 4 }
+  ]
+};
+
+function startBreathing(mode) {
+  stopBreathing();
+
+  const steps = patterns[mode];
+  const text = document.getElementById("text");
+  const timer = document.getElementById("timer");
+
+  let stepIndex = 0;
+
+  function runStep() {
+    let step = steps[stepIndex];
+    let count = step.time;
+
+    text.innerText = step.text;
+    timer.innerText = count + " s";
+
+    interval = setInterval(() => {
+      count--;
+      timer.innerText = count + " s";
+
+      if (count <= 0) {
+        clearInterval(interval);
+        stepIndex = (stepIndex + 1) % steps.length;
+        runStep();
+      }
+    }, 1000);
+  }
+
+  runStep();
+}
+
+function stopBreathing() {
+  clearInterval(interval);
+  document.getElementById("text").innerText = "Stopped";
+  document.getElementById("timer").innerText = "0 s";
+}
+</script>
+
+</body>
+</html>
