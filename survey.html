@@ -1,47 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>Laptop Survey</title>
-
-    <link rel="stylesheet"
-          href="css/survey.css">
-
-    <link rel="preconnect"
-          href="https://fonts.googleapis.com">
-
-    <link rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossorigin>
-
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-          rel="stylesheet">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laptop Survey - Darkness</title>
+    <link rel="stylesheet" href="css/survey.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-
 <body>
+    <div class="survey-container" id="mainContainer">
 
-    <div class="survey-container">
+        <!-- ===== SIGN-IN CHOICE SCREEN ===== -->
+        <div id="signInChoice" class="survey-card">
+            <h1>Welcome to Laptop Survey</h1>
+            <p>Choose how you'd like to continue</p>
+            <div class="choice-buttons">
+                <button class="choice-btn" onclick="showSignInNew()">
+                    <span class="choice-icon">+</span>
+                    <span class="choice-label">Sign in as New</span>
+                    <span class="choice-desc">First time? Submit a new request</span>
+                </button>
+                <button class="choice-btn" onclick="showSignInAlready()">
+                    <span class="choice-icon">&#8594;</span>
+                    <span class="choice-label">Sign in Already</span>
+                    <span class="choice-desc">Already requested? Check your status</span>
+                </button>
+            </div>
+        </div>
 
-        <div class="survey-card" id="surveyCard">
+        <!-- ===== SIGN IN AS NEW ===== -->
+        <div id="signInNew" class="survey-card" style="display:none">
+            <h1>Sign in as New</h1>
+            <p>Fill in your details to request access</p>
+            <div class="input-box">
+                <label for="newName">Name <span class="required">*</span></label>
+                <input type="text" id="newName" placeholder="Enter your full name" required>
+            </div>
+            <div class="input-box">
+                <label for="newEmail">Email <span class="required">*</span></label>
+                <input type="email" id="newEmail" placeholder="Enter your email" required>
+            </div>
+            <div class="input-box">
+                <label for="newMobile">Mobile Number <span class="required">*</span></label>
+                <input type="tel" id="newMobile" placeholder="Enter your mobile number" required>
+            </div>
+            <div class="input-box">
+                <label for="newPurpose">Purpose <span class="optional">(optional)</span></label>
+                <textarea id="newPurpose" rows="3" placeholder="Why do you want to take this survey?"></textarea>
+            </div>
+            <div class="buttons">
+                <button class="btn-back" onclick="showSignInChoice()">Back</button>
+                <button class="btn-primary" onclick="submitNewRequest()">Submit Request</button>
+            </div>
+            <div id="newRequestMsg" class="status-msg" style="display:none"></div>
+        </div>
 
-            <!-- Content is loaded dynamically by survey.js -->
+        <!-- ===== SIGN IN ALREADY ===== -->
+        <div id="signInAlready" class="survey-card" style="display:none">
+            <h1>Sign in Already</h1>
+            <p>Enter your email to check your access status</p>
+            <div class="input-box">
+                <label for="existingEmail">Email <span class="required">*</span></label>
+                <input type="email" id="existingEmail" placeholder="Enter your email" required>
+            </div>
+            <div class="buttons">
+                <button class="btn-back" onclick="showSignInChoice()">Back</button>
+                <button class="btn-primary" onclick="checkExistingAccess()">Check Status</button>
+            </div>
+            <div id="existingStatusMsg" class="status-msg" style="display:none"></div>
+        </div>
 
-            <h1 style="text-align:center; color:#60a5fa;">Loading...</h1>
-            <p style="text-align:center; color:#cbd5e1;">Checking access...</p>
+        <!-- ===== SURVEY AREA ===== -->
+        <div id="surveyArea" class="survey-card" style="display:none">
+            <h1 id="surveyTitle">Laptop Market Research Survey</h1>
+            <p id="surveySubtitle">Answer the questions below</p>
+            <div class="progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div id="progressText">Question 1 of 10</div>
+            <div class="question-area" id="questionArea">
+                <h2 id="questionText"></h2>
+                <div id="options"></div>
+            </div>
+            <div class="buttons">
+                <button id="prevBtn" onclick="prevQuestion()">Previous</button>
+                <button id="nextBtn" onclick="nextQuestion()">Next</button>
+                <button id="submitBtn" onclick="handleSubmit()">Submit Survey</button>
+            </div>
+        </div>
 
+        <!-- ===== THANK YOU ===== -->
+        <div id="thankYou" class="survey-card" style="display:none">
+            <h1>Thank You!</h1>
+            <p>Your survey response has been submitted successfully.</p>
+            <a href="index.html" class="btn-primary" style="display:inline-block;margin-top:20px;text-align:center">Back to Home</a>
         </div>
 
     </div>
 
     <script src="js/survey.js"></script>
-
 </body>
-
 </html>

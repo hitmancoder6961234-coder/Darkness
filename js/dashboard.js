@@ -3,7 +3,7 @@
 // Dashboard Analytics
 // ===============================
 
-const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbx-kggNIXc9XqSjtXkLOaY5-WbMNlmnA_6HnzFoCjqsS58pZdHqs-_n2GiUUmTVuLas1g/exec";
+const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxaSHCsuBMp1XiUL0Gnu2iZo4Ab6ITHTLRUNTFaEW94fQ__A9CdfXsOqztCAd6eMabADA/exec";
 
 // Chart.js global defaults
 Chart.defaults.color = "#cbd5e1";

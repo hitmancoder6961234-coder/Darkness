@@ -1,444 +1,494 @@
 // ===============================
-// Laptop Market Research Survey
-// With Google Sheets Integration
+// Laptop Market Research
+// Unified Sign-In Flow + Survey
 // ===============================
 
-// Google Apps Script Web App URL
-const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbx-kggNIXc9XqSjtXkLOaY5-WbMNlmnA_6HnzFoCjqsS58pZdHqs-_n2GiUUmTVuLas1g/exec";
+const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxaSHCsuBMp1XiUL0Gnu2iZo4Ab6ITHTLRUNTFaEW94fQ__A9CdfXsOqztCAd6eMabADA/exec";
 
 // =======================================
-// Question Data
-// (Options match the "List" sheet dropdowns)
+// Screen Navigation
 // =======================================
 
-// Question 1
-const firstQuestion = {
-    question: "Do you have a laptop?",
-    column: "Laptop Ownership",
-    options: [
-        "Yes",
-        "No"
-    ]
-};
+function hideAllScreens() {
+    var screens = ["signInChoice", "signInNew", "signInAlready", "surveyArea", "thankYou"];
+    screens.forEach(function(id) {
+        document.getElementById(id).style.display = "none";
+    });
+}
 
-// Questions for Laptop Owners (If Answer = Yes)
-const ownerQuestions = [
-    {
-        question: "What do you mainly use your laptop for?",
-        column: "Usage Purpose",
-        options: ["Study", "Gaming", "Office Work", "Video Editing/Streaming", "Coding/Software Development"]
-    },
-    {
-        question: "What do you find most useful in your current laptop?",
-        column: "Useful Features",
-        options: ["Performance", "Battery Life", "Storage", "Build Quality", "Portability"]
-    },
-    {
-        question: "What problem do you face most often with your current laptop?",
-        column: "Current Laptop Problems",
-        options: ["Slow Performance", "Battery Issue", "Heating Problem", "Storage Shortage", "No Major Problem"]
-    },
-    {
-        question: "How satisfied are you with your current laptop?",
-        column: "Satisfaction Level",
-        options: ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied", "Very Dissatisfied"]
-    },
-    {
-        question: "Which feature would you like to improve the most?",
-        column: "Improvement Needed",
-        options: ["Processor", "RAM", "Graphics", "Battery", "Display"]
-    },
-    {
-        question: "How often do you upgrade or replace your laptop?",
-        column: "Upgrade Frequency",
-        options: ["Every 1\u20132 Years", "Every 3\u20134 Years", "Every 4+ Years", "Only When Necessary"]
-    },
-    {
-        question: "Which laptop brand do you currently use?",
-        column: "Preferred Brand",
-        options: ["HP", "Dell", "Lenovo", "ASUS", "Apple", "Acer"]
-    },
-    {
-        question: "What is the most important factor when buying a laptop?",
-        column: "Buying Pattern",
-        options: ["Price", "Performance", "Battery Life", "Brand", "Design"]
-    },
-    {
-        question: "Would you recommend your current laptop to others?",
-        column: "Recommended Laptop",
-        options: ["Yes", "Maybe", "No"]
+function showScreen(id) {
+    hideAllScreens();
+    document.getElementById(id).style.display = "block";
+}
+
+function showSignInChoice() {
+    showScreen("signInChoice");
+}
+
+function showSignInNew() {
+    showScreen("signInNew");
+    document.getElementById("newRequestMsg").style.display = "none";
+}
+
+function showSignInAlready() {
+    showScreen("signInAlready");
+    document.getElementById("existingStatusMsg").style.display = "none";
+}
+
+// =======================================
+// SIGN IN AS NEW - Submit Access Request
+// =======================================
+
+function submitNewRequest() {
+    var name = document.getElementById("newName").value.trim();
+    var email = document.getElementById("newEmail").value.trim();
+    var mobile = document.getElementById("newMobile").value.trim();
+    var purpose = document.getElementById("newPurpose").value.trim();
+    var msgEl = document.getElementById("newRequestMsg");
+
+    // Validation
+    if (!name) {
+        showStatus(msgEl, "error", "Please enter your name.");
+        return;
     }
-];
-
-// Questions for Non-Owners (If Answer = No)
-const buyerQuestions = [
-    {
-        question: "Why do you want to buy a laptop?",
-        column: "Usage Purpose",
-        options: ["Study", "Gaming", "Office Work", "Video Editing/Streaming", "Coding/Software Development"]
-    },
-    {
-        question: "Which type of laptop would you prefer?",
-        column: "Preferred Laptop",
-        options: ["Student Laptop", "Gaming Laptop", "Business Laptop", "Budget Laptop", "Premium Laptop"]
-    },
-    {
-        question: "What is your expected budget?",
-        column: "Budget",
-        options: ["Below \u20b930,000", "\u20b930,000\u2013\u20b950,000", "\u20b950,000\u2013\u20b980,000", "Above \u20b980,000"]
-    },
-    {
-        question: "Which feature is most important to you?",
-        column: "Useful Features",
-        options: ["Performance", "Battery Life", "Storage", "Build Quality", "Portability"]
-    },
-    {
-        question: "Which screen size do you prefer?",
-        column: "Screen Size",
-        options: ["13\u201314 Inch", "15\u201316 Inch", "17 Inch or Larger"]
-    },
-    {
-        question: "Which laptop brand would you prefer?",
-        column: "Preferred Brand",
-        options: ["HP", "Dell", "Lenovo", "ASUS", "Apple", "Acer"]
-    },
-    {
-        question: "How long do you expect your laptop to last?",
-        column: "Expected Laptop Life",
-        options: ["1\u20132 Years", "3\u20135 Years", "More Than 5 Years"]
-    },
-    {
-        question: "Where would you prefer to buy a laptop?",
-        column: "Buying Place",
-        options: ["Online", "Offline Store", "Brand Store", "Secondhand Market"]
-    },
-    {
-        question: "What will influence your final buying decision the most?",
-        column: "Final Decision Factor",
-        options: ["Price", "Reviews", "Specifications", "Brand Reputation", "User Recommendations"]
+    if (!email || !isValidEmail(email)) {
+        showStatus(msgEl, "error", "Please enter a valid email address.");
+        return;
     }
-];
-
-// =======================================
-// Survey Variables
-// =======================================
-
-let currentQuestion = 0;
-let surveyQuestions = [];
-let answers = {};
-let questionBranchLoaded = false;
-let userName = "";
-let userEmail = "";
-
-// =======================================
-// Access Check (runs on page load)
-// =======================================
-
-(function checkUserAccess() {
-    var surveyCard = document.getElementById("surveyCard");
-
-    // Check if coming from approval email link (survey.html?email=xxx)
-    var urlParams = new URLSearchParams(window.location.search);
-    var emailFromLink = urlParams.get("email");
-
-    // Check if already approved (from previous session)
-    var savedEmail = localStorage.getItem("approvedEmail");
-    var savedName = localStorage.getItem("approvedName");
-
-    if (savedEmail && savedName) {
-        userName = savedName;
-        userEmail = savedEmail;
-        startSurvey();
+    if (!mobile) {
+        showStatus(msgEl, "error", "Please enter your mobile number.");
         return;
     }
 
-    // If coming from email link, auto-check that email
-    if (emailFromLink) {
-        localStorage.setItem("pendingEmail", emailFromLink);
-    }
+    // Save to localStorage for later use
+    localStorage.setItem("pendingEmail", email);
+    localStorage.setItem("pendingName", name);
+    localStorage.setItem("pendingMobile", mobile);
 
-    // Check for pending email from request form or email link
-    var pendingEmail = localStorage.getItem("pendingEmail") || "";
-    var pendingName = localStorage.getItem("pendingName") || "";
+    showStatus(msgEl, "info", "Submitting your request...");
 
-    // Show email check screen
-    surveyCard.innerHTML = '<h1 style="text-align:center; margin-bottom:15px;">Survey Access</h1>' +
-        '<p style="text-align:center; color:#cbd5e1; margin-bottom:25px;">Enter your email to check if you have been approved to take the survey.</p>' +
-        '<div style="max-width:400px; margin:0 auto;">' +
-        '<input type="email" id="checkEmail" placeholder="Enter your email address" value="' + pendingEmail + '" ' +
-        'style="width:100%; padding:14px 18px; border-radius:10px; border:1px solid #334155; background:#1e293b; color:#f1f5f9; font-size:16px; margin-bottom:15px; box-sizing:border-box;">' +
-        '<button id="checkAccessBtn" onclick="checkAccessFromSheet()" ' +
-        'style="width:100%; padding:14px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer;">' +
-        'Check Access</button>' +
-        '<p id="accessMessage" style="text-align:center; margin-top:15px; color:#fbbf24; display:none;"></p>' +
-        '<div style="text-align:center; margin-top:20px;">' +
-        '<a href="request.html" style="color:#60a5fa; text-decoration:underline;">Don\'t have access? Request here</a>' +
-        '</div></div>';
+    var data = {
+        action: "accessRequest",
+        name: name,
+        email: email,
+        mobile: mobile,
+        purpose: purpose
+    };
 
-    // Auto-check if there's a pending email from request form or email link
-    if (pendingEmail) {
-        setTimeout(function() { checkAccessFromSheet(); }, 500);
-    }
-})();
+    sendToGoogleSheets(data, function() {
+        showStatus(msgEl, "success",
+            "Your request has been submitted! Status: <strong>Pending</strong>.<br>" +
+            "You will receive an email once your request is approved.<br>" +
+            "You can come back anytime and use <strong>\"Sign in Already\"</strong> to check your status."
+        );
+    }, function() {
+        showStatus(msgEl, "error",
+            "There was an error submitting your request. Please try again."
+        );
+    });
+}
 
-// Check access from Google Sheets
-function checkAccessFromSheet() {
-    var email = document.getElementById("checkEmail").value.trim();
-    var messageEl = document.getElementById("accessMessage");
+// =======================================
+// SIGN IN ALREADY - Check Access Status
+// =======================================
 
-    if (!email) {
-        messageEl.textContent = "Please enter your email address.";
-        messageEl.style.display = "block";
-        messageEl.style.color = "#ef4444";
+function checkExistingAccess() {
+    var email = document.getElementById("existingEmail").value.trim();
+    var msgEl = document.getElementById("existingStatusMsg");
+
+    if (!email || !isValidEmail(email)) {
+        showStatus(msgEl, "error", "Please enter a valid email address.");
         return;
     }
 
-    messageEl.textContent = "Checking access...";
-    messageEl.style.display = "block";
-    messageEl.style.color = "#60a5fa";
+    showStatus(msgEl, "info", "Checking your access status...");
 
-    fetch(GOOGLE_SHEETS_URL + "?action=checkAccess&email=" + encodeURIComponent(email))
+    checkAccessFromSheet(email, function(status) {
+        if (status === "Accepted") {
+            // Save approved email
+            localStorage.setItem("approvedEmail", email);
+            showStatus(msgEl, "success",
+                "Your access has been <strong>Approved</strong>! Starting survey..."
+            );
+            setTimeout(function() {
+                startSurvey(email);
+            }, 1200);
+        } else if (status === "Pending") {
+            showStatus(msgEl, "warning",
+                "Your request is currently <strong>Pending</strong>.<br>" +
+                "Please wait for admin approval. You will receive an email once approved."
+            );
+        } else {
+            showStatus(msgEl, "error",
+                "No request found for this email.<br>" +
+                "Please <strong>\"Sign in as New\"</strong> to submit an access request first."
+            );
+        }
+    }, function() {
+        showStatus(msgEl, "error", "Could not check your status. Please try again.");
+    });
+}
+
+// =======================================
+// Access Check from Google Sheets
+// =======================================
+
+function checkAccessFromSheet(email, onSuccess, onError) {
+    var url = GOOGLE_SHEETS_URL + "?action=checkAccess&email=" + encodeURIComponent(email);
+
+    fetch(url)
         .then(function(response) { return response.json(); })
         .then(function(data) {
-            if (data.status === "found" && data.accessStatus === "Accepted") {
-                userName = data.name || "";
-                userEmail = email;
-                localStorage.setItem("approvedEmail", email);
-                localStorage.setItem("approvedName", userName);
-                messageEl.textContent = "Access granted! Starting survey...";
-                messageEl.style.color = "#16a34a";
-                setTimeout(function() { startSurvey(); }, 1000);
-            } else if (data.status === "found" && data.accessStatus === "Pending") {
-                messageEl.textContent = "Your request is still pending. Please wait for admin approval.";
-                messageEl.style.color = "#fbbf24";
-            } else if (data.status === "found" && data.accessStatus === "Rejected") {
-                messageEl.textContent = "Your access request has been rejected.";
-                messageEl.style.color = "#ef4444";
-            } else if (data.status === "exists") {
-                messageEl.textContent = "Your request status: " + (data.accessStatus || "Pending") + ". Please wait for admin approval.";
-                messageEl.style.color = "#fbbf24";
+            if (data && data.status) {
+                onSuccess(data.status);
             } else {
-                messageEl.textContent = "Email not found. Please request access first.";
-                messageEl.style.color = "#ef4444";
+                onSuccess("Not Found");
             }
         })
         .catch(function(error) {
-            console.error("Error checking access:", error);
-            messageEl.textContent = "Error checking access. Please try again.";
-            messageEl.style.color = "#ef4444";
+            console.error("Access check error:", error);
+            onError(error);
         });
 }
 
-// Make it globally accessible for onclick
-window.checkAccessFromSheet = checkAccessFromSheet;
-
 // =======================================
-// Start Survey (after access confirmed)
+// Auto-Check from URL Parameter
 // =======================================
 
-function startSurvey() {
-    var surveyCard = document.getElementById("surveyCard");
+(function autoCheckFromURL() {
+    var params = new URLSearchParams(window.location.search);
+    var emailParam = params.get("email");
 
-    // Build the survey UI
-    surveyCard.innerHTML =
-        '<h1>Laptop Market Research Survey</h1>' +
-        '<p>Please answer the following questions honestly.</p>' +
-        '<div class="progress"><div class="progress-bar" id="progressBar"></div></div>' +
-        '<div id="progressText">Question 1 of 10</div>' +
-        '<div class="question-area"><h2 id="question">Loading...</h2><div id="options"></div></div>' +
-        '<div class="buttons">' +
-        '<button id="previousBtn">Previous</button>' +
-        '<button id="nextBtn">Next</button>' +
-        '<button id="submitBtn">Submit Survey</button>' +
-        '</div>';
+    if (emailParam && isValidEmail(emailParam)) {
+        // Auto-fill the existing email field
+        document.getElementById("existingEmail").value = emailParam;
 
-    surveyQuestions.push(firstQuestion);
-    loadQuestion();
+        // Show "Sign in Already" screen and auto-check
+        showSignInAlready();
+        showStatus(document.getElementById("existingStatusMsg"), "info",
+            "Checking your access for <strong>" + emailParam + "</strong>..."
+        );
 
-    // Attach event listeners
-    document.getElementById("nextBtn").addEventListener("click", handleNext);
-    document.getElementById("previousBtn").addEventListener("click", handlePrevious);
-    document.getElementById("submitBtn").addEventListener("click", handleSubmit);
+        checkAccessFromSheet(emailParam, function(status) {
+            var msgEl = document.getElementById("existingStatusMsg");
+            if (status === "Accepted") {
+                localStorage.setItem("approvedEmail", emailParam);
+                showStatus(msgEl, "success",
+                    "Your access has been <strong>Approved</strong>! Starting survey..."
+                );
+                setTimeout(function() {
+                    startSurvey(emailParam);
+                }, 800);
+            } else if (status === "Pending") {
+                showStatus(msgEl, "warning",
+                    "Your request is currently <strong>Pending</strong>.<br>" +
+                    "Please wait for admin approval. You will receive an email once approved."
+                );
+            } else {
+                showStatus(msgEl, "error",
+                    "No approved request found for this email.<br>" +
+                    "Please <strong>\"Sign in as New\"</strong> to submit an access request."
+                );
+                // Show the choice screen after a moment
+                setTimeout(function() {
+                    showSignInChoice();
+                }, 2000);
+            }
+        }, function() {
+            showStatus(document.getElementById("existingStatusMsg"), "error",
+                "Could not verify your access. Please try again."
+            );
+        });
+    } else {
+        // Check localStorage for previously approved email
+        var savedEmail = localStorage.getItem("approvedEmail");
+        if (savedEmail) {
+            // Auto-fill and show the sign-in already screen
+            document.getElementById("existingEmail").value = savedEmail;
+        }
+        showSignInChoice();
+    }
+})();
+
+// =======================================
+// Survey Data & Logic
+// =======================================
+
+var currentQuestion = 0;
+var answers = {};
+var userEmail = "";
+var questions = [];
+
+function buildQuestions() {
+    return [
+        {
+            id: "ownership",
+            text: "Do you currently own a laptop?",
+            column: "Laptop Ownership",
+            options: ["Yes", "No"],
+            type: "radio"
+        },
+        // ===== OWNER BRANCH (Q2-Q6) =====
+        {
+            id: "usage",
+            text: "What is your primary usage purpose?",
+            column: "Usage Purpose",
+            options: ["Study", "Work", "Gaming", "Content Creation", "General Use"],
+            type: "radio",
+            showIf: { ownership: "Yes" }
+        },
+        {
+            id: "brand",
+            text: "Which brand is your current laptop?",
+            column: "Preferred Brand",
+            options: ["HP", "Dell", "Lenovo", "Asus", "Acer", "Apple", "Other"],
+            type: "radio",
+            showIf: { ownership: "Yes" }
+        },
+        {
+            id: "satisfaction",
+            text: "How satisfied are you with your current laptop?",
+            column: "Satisfaction Level",
+            options: ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied", "Very Dissatisfied"],
+            type: "radio",
+            showIf: { ownership: "Yes" }
+        },
+        {
+            id: "problems",
+            text: "What problems do you face with your current laptop?",
+            column: "Current Laptop Problems",
+            options: ["Battery Life", "Heating Problem", "Slow Performance", "Display Issues", "None"],
+            type: "radio",
+            showIf: { ownership: "Yes" }
+        },
+        {
+            id: "feature",
+            text: "Which feature do you find most useful in your laptop?",
+            column: "Useful Features",
+            options: ["Battery Life", "Display Quality", "Keyboard Comfort", "Performance", "Portability"],
+            type: "radio",
+            showIf: { ownership: "Yes" }
+        },
+        // ===== BUYER BRANCH (Q2-Q6) =====
+        {
+            id: "budget",
+            text: "What is your budget for a new laptop?",
+            column: "Budget",
+            options: ["Under \u20B930,000", "\u20B930,000 \u2013 \u20B950,000", "\u20B950,000 \u2013 \u20B980,000", "Above \u20B980,000"],
+            type: "radio",
+            showIf: { ownership: "No" }
+        },
+        {
+            id: "brandBuyer",
+            text: "Which brand would you prefer?",
+            column: "Preferred Brand",
+            options: ["HP", "Dell", "Lenovo", "Asus", "Acer", "Apple", "Other"],
+            type: "radio",
+            showIf: { ownership: "No" }
+        },
+        {
+            id: "decision",
+            text: "What is your final decision factor when buying a laptop?",
+            column: "Final Decision Factor",
+            options: ["Price", "Brand", "Specifications", "Reviews", "Design"],
+            type: "radio",
+            showIf: { ownership: "No" }
+        },
+        {
+            id: "featureBuyer",
+            text: "Which feature matters most to you?",
+            column: "Useful Features",
+            options: ["Battery Life", "Display Quality", "Keyboard Comfort", "Performance", "Portability"],
+            type: "radio",
+            showIf: { ownership: "No" }
+        },
+        {
+            id: "usageBuyer",
+            text: "What will be your primary usage purpose?",
+            column: "Usage Purpose",
+            options: ["Study", "Work", "Gaming", "Content Creation", "General Use"],
+            type: "radio",
+            showIf: { ownership: "No" }
+        }
+    ];
 }
 
-// =======================================
-// Question Loading
-// =======================================
-
-function loadQuestion() {
-    var questionEl = document.getElementById("question");
-    var optionsEl = document.getElementById("options");
-    var progressBarEl = document.getElementById("progressBar");
-    var progressTextEl = document.getElementById("progressText");
-
-    questionEl.textContent = surveyQuestions[currentQuestion].question;
-    optionsEl.innerHTML = "";
-
-    surveyQuestions[currentQuestion].options.forEach(function(option) {
-        var label = document.createElement("label");
-        label.className = "option";
-        label.innerHTML = '<input type="radio" name="answer" value="' + option + '">' + option;
-
-        // Restore previously selected answer
-        var col = surveyQuestions[currentQuestion].column;
-        if (answers[col] === option) {
-            label.querySelector("input").checked = true;
+function getVisibleQuestions() {
+    return questions.filter(function(q) {
+        if (!q.showIf) return true;
+        for (var key in q.showIf) {
+            if (answers[key] !== q.showIf[key]) return false;
         }
-
-        optionsEl.appendChild(label);
+        return true;
     });
+}
+
+function startSurvey(email) {
+    userEmail = email;
+    questions = buildQuestions();
+    answers = {};
+    currentQuestion = 0;
+
+    showScreen("surveyArea");
+    renderQuestion();
+}
+
+function renderQuestion() {
+    var visible = getVisibleQuestions();
+    var total = visible.length;
+
+    if (currentQuestion >= total) {
+        handleSubmit();
+        return;
+    }
+
+    var q = visible[currentQuestion];
 
     // Update progress
-    var totalQuestions = (currentQuestion === 0 && !questionBranchLoaded) ? 10 : surveyQuestions.length;
-    progressTextEl.textContent = "Question " + (currentQuestion + 1) + " of " + totalQuestions;
-    progressBarEl.style.width = ((currentQuestion + 1) / totalQuestions) * 100 + "%";
+    var pct = ((currentQuestion + 1) / total) * 100;
+    document.getElementById("progressBar").style.width = pct + "%";
+    document.getElementById("progressText").textContent = "Question " + (currentQuestion + 1) + " of " + total;
 
-    // Update buttons
-    var prevBtn = document.getElementById("previousBtn");
+    // Question text
+    document.getElementById("questionText").textContent = q.text;
+
+    // Options
+    var optionsDiv = document.getElementById("options");
+    optionsDiv.innerHTML = "";
+
+    q.options.forEach(function(opt) {
+        var div = document.createElement("div");
+        div.className = "option";
+        if (answers[q.id] === opt) div.classList.add("selected");
+
+        var radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = q.id;
+        radio.value = opt;
+        radio.checked = (answers[q.id] === opt);
+
+        var label = document.createElement("span");
+        label.textContent = opt;
+
+        div.appendChild(radio);
+        div.appendChild(label);
+
+        div.addEventListener("click", function() {
+            answers[q.id] = opt;
+            radio.checked = true;
+            // Update visual selection
+            var allOptions = optionsDiv.querySelectorAll(".option");
+            allOptions.forEach(function(o) { o.classList.remove("selected"); });
+            div.classList.add("selected");
+        });
+
+        optionsDiv.appendChild(div);
+    });
+
+    // Button visibility
+    var prevBtn = document.getElementById("prevBtn");
     var nextBtn = document.getElementById("nextBtn");
-    var subBtn = document.getElementById("submitBtn");
+    var submitBtn = document.getElementById("submitBtn");
 
-    prevBtn.style.display = currentQuestion === 0 ? "none" : "inline-block";
-
-    if (currentQuestion === 0) {
-        nextBtn.style.display = "inline-block";
-        subBtn.style.display = "none";
-    } else if (currentQuestion === surveyQuestions.length - 1) {
-        nextBtn.style.display = "none";
-        subBtn.style.display = "inline-block";
-    } else {
-        nextBtn.style.display = "inline-block";
-        subBtn.style.display = "none";
-    }
+    prevBtn.style.display = (currentQuestion > 0) ? "block" : "none";
+    nextBtn.style.display = (currentQuestion < total - 1) ? "block" : "none";
+    submitBtn.style.display = (currentQuestion === total - 1) ? "block" : "none";
 }
 
-function getSelectedAnswer() {
-    var selected = document.querySelector('input[name="answer"]:checked');
-    return selected ? selected.value : null;
-}
-
-function loadQuestionBranch(answer) {
-    if (questionBranchLoaded) return;
-    questionBranchLoaded = true;
-
-    if (answer === "Yes") {
-        ownerQuestions.forEach(function(q) { surveyQuestions.push(q); });
-    } else if (answer === "No") {
-        buyerQuestions.forEach(function(q) { surveyQuestions.push(q); });
-    }
-}
-
-// =======================================
-// Button Handlers
-// =======================================
-
-function handleNext() {
-    var selected = getSelectedAnswer();
-    if (!selected) {
-        alert("Please select an answer before proceeding.");
+function nextQuestion() {
+    var visible = getVisibleQuestions();
+    var q = visible[currentQuestion];
+    if (!answers[q.id]) {
+        alert("Please select an option before proceeding.");
         return;
     }
-
-    answers[surveyQuestions[currentQuestion].column] = selected;
-
-    if (currentQuestion === 0) {
-        loadQuestionBranch(selected);
-    }
-
     currentQuestion++;
-    loadQuestion();
+    renderQuestion();
 }
 
-function handlePrevious() {
+function prevQuestion() {
     if (currentQuestion > 0) {
-        var selected = getSelectedAnswer();
-        if (selected) {
-            answers[surveyQuestions[currentQuestion].column] = selected;
-        }
         currentQuestion--;
-        loadQuestion();
+        renderQuestion();
     }
 }
+
+// =======================================
+// Submit Survey
+// =======================================
 
 function handleSubmit() {
-    var selected = getSelectedAnswer();
-    if (!selected) {
-        alert("Please select an answer before submitting.");
+    var visible = getVisibleQuestions();
+    var q = visible[currentQuestion];
+    if (q && !answers[q.id]) {
+        alert("Please select an option before submitting.");
         return;
     }
 
-    answers[surveyQuestions[currentQuestion].column] = selected;
-
     // Build response data with column names
-    var responseData = {
+    var data = {
         action: "surveyResponse",
-        name: userName,
         email: userEmail
     };
 
-    // Add all answers using column names
-    surveyQuestions.forEach(function(q) {
-        responseData[q.column] = answers[q.column] || "";
-    });
-
-    // Fill empty columns for the other branch
-    var allColumns = [
-        "Laptop Ownership", "Usage Purpose", "Useful Features",
-        "Current Laptop Problems", "Satisfaction Level", "Improvement Needed",
-        "Upgrade Frequency", "Preferred Brand", "Buying Pattern",
-        "Recommended Laptop", "Preferred Laptop", "Budget",
-        "Screen Size", "Expected Laptop Life", "Buying Place", "Final Decision Factor"
-    ];
-
-    allColumns.forEach(function(col) {
-        if (!responseData[col]) {
-            responseData[col] = "";
+    questions.forEach(function(q) {
+        if (answers[q.id]) {
+            data[q.column] = answers[q.id];
         }
     });
 
-    console.log("Survey Submitted");
-    console.table(responseData);
-
-    // Store locally
-    localStorage.setItem("surveyData", JSON.stringify(responseData));
-
     // Send to Google Sheets
-    sendToGoogleSheets(responseData);
-
-    // Show thank you message
-    var surveyCard = document.getElementById("surveyCard");
-    surveyCard.innerHTML =
-        '<h1 style="text-align:center; margin-bottom:15px;">Thank You!</h1>' +
-        '<p style="text-align:center; color:#cbd5e1; margin-bottom:25px;">Your survey responses have been recorded successfully. We appreciate your participation in the Laptop Market Research.</p>' +
-        '<div style="text-align:center; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">' +
-        '<a href="dashboard.html" style="display:inline-block; padding:14px 28px; background:#16a34a; color:#fff; border-radius:10px; text-decoration:none; font-weight:600;">View Dashboard</a>' +
-        '<a href="index.html" style="display:inline-block; padding:14px 28px; background:#2563eb; color:#fff; border-radius:10px; text-decoration:none; font-weight:600;">Back to Home</a>' +
-        '</div>';
+    sendToGoogleSheets(data, function() {
+        showScreen("thankYou");
+        // Clear stored email
+        localStorage.removeItem("approvedEmail");
+    }, function() {
+        alert("There was an error submitting your survey. Please try again.");
+    });
 }
 
 // =======================================
-// Google Sheets Integration
+// Google Sheets Communication
 // =======================================
 
-function sendToGoogleSheets(data) {
-    if (GOOGLE_SHEETS_URL === "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE") {
-        console.log("Google Sheets URL not configured. Data saved locally only.");
-        return;
-    }
-
+function sendToGoogleSheets(data, onSuccess, onError) {
     fetch(GOOGLE_SHEETS_URL, {
         method: "POST",
         mode: "no-cors",
-        headers: {
-            "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
     })
     .then(function() {
-        console.log("Survey data sent to Google Sheets successfully.");
+        // no-cors mode doesn't return readable response
+        if (onSuccess) onSuccess();
     })
     .catch(function(error) {
-        console.error("Error sending data to Google Sheets:", error);
-        console.log("Data is saved locally and can be synced later.");
+        console.error("Google Sheets error:", error);
+        if (onError) onError(error);
     });
+}
+
+// =======================================
+// Utility Functions
+// =======================================
+
+function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function showStatus(el, type, message) {
+    el.style.display = "block";
+    el.className = "status-msg";
+
+    if (type === "success") {
+        el.classList.add("status-success");
+    } else if (type === "error") {
+        el.classList.add("status-error");
+    } else if (type === "warning") {
+        el.classList.add("status-warning");
+    } else {
+        el.classList.add("status-info");
+    }
+
+    el.innerHTML = message;
 }
