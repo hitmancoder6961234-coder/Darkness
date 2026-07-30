@@ -147,22 +147,23 @@ function checkAccessFromSheet(email, onSuccess, onError) {
 
             // Handle multiple response formats from different Apps Script versions:
             // Format 1: {"status": "Accepted"} or {"status": "Pending"} or {"status": "Not Found"}
-            // Format 2: {"status": "found", "accessStatus": "Accepted"} or {"status": "not found"}
+            // Format 2: {"status": "found", "accessStatus": "Accepted"} or {"status": "not_found", "accessStatus": "None"}
             // Format 3: {"status": "exists", "currentStatus": "Accepted"}
 
             var accessStatus = "";
 
-            if (data.accessStatus) {
-                // Format 2: status="found", accessStatus="Accepted"/"Pending"/"Rejected"
-                accessStatus = data.accessStatus;
-            } else if (data.currentStatus) {
-                // Format 3: status="exists", currentStatus="Accepted"/"Pending"
-                accessStatus = data.currentStatus;
-            } else if (data.status === "found" || data.status === "exists") {
-                // If status is "found" but no accessStatus field, try to get it
-                accessStatus = "Unknown";
-            } else if (data.status === "Not Found" || data.status === "not found") {
+            // First check if the email was NOT found
+            if (data.status === "not_found" || data.status === "Not Found" || data.status === "not found") {
                 accessStatus = "Not Found";
+            } else if (data.status === "found" || data.status === "exists") {
+                // Email was found - get the actual access status
+                if (data.accessStatus && data.accessStatus !== "None") {
+                    accessStatus = data.accessStatus;
+                } else if (data.currentStatus) {
+                    accessStatus = data.currentStatus;
+                } else {
+                    accessStatus = "Unknown";
+                }
             } else {
                 // Format 1: status directly contains the access status
                 accessStatus = data.status;
