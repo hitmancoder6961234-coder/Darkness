@@ -130,24 +130,17 @@ let questionBranchLoaded = false;
 let userName = "";
 let userEmail = "";
 
-const questionElement = document.getElementById("question");
-const optionsElement = document.getElementById("options");
-const progressBar = document.getElementById("progressBar");
-const progressText = document.getElementById("progressText");
-const previousButton = document.getElementById("previousBtn");
-const nextButton = document.getElementById("nextBtn");
-const submitButton = document.getElementById("submitBtn");
-
 // =======================================
-// Access Check
+// Access Check (runs on page load)
 // =======================================
 
-// Check if user is approved before showing survey
 (function checkUserAccess() {
-    const savedEmail = localStorage.getItem("approvedEmail");
-    const savedName = localStorage.getItem("approvedName");
+    var surveyCard = document.getElementById("surveyCard");
 
-    // If already approved, start survey directly
+    // Check if already approved (from previous session)
+    var savedEmail = localStorage.getItem("approvedEmail");
+    var savedName = localStorage.getItem("approvedName");
+
     if (savedEmail && savedName) {
         userName = savedName;
         userEmail = savedEmail;
@@ -155,32 +148,25 @@ const submitButton = document.getElementById("submitBtn");
         return;
     }
 
-    // Check if user has a pending email from request form
-    const pendingEmail = localStorage.getItem("pendingEmail") || "";
-    const pendingName = localStorage.getItem("pendingName") || "";
+    // Check for pending email from request form
+    var pendingEmail = localStorage.getItem("pendingEmail") || "";
+    var pendingName = localStorage.getItem("pendingName") || "";
 
     // Show email check screen
-    const surveyCard = document.querySelector(".survey-card");
-    surveyCard.innerHTML = `
-        <h1 style="text-align:center; margin-bottom:15px;">Survey Access</h1>
-        <p style="text-align:center; color:#cbd5e1; margin-bottom:25px;">
-            Enter your email to check if you have been approved to take the survey.
-        </p>
-        <div style="max-width:400px; margin:0 auto;">
-            <input type="email" id="checkEmail" placeholder="Enter your email address" value="${pendingEmail}"
-                style="width:100%; padding:14px 18px; border-radius:10px; border:1px solid #334155; background:#1e293b; color:#f1f5f9; font-size:16px; margin-bottom:15px; box-sizing:border-box;">
-            <button id="checkAccessBtn" onclick="checkAccessFromSheet()"
-                style="width:100%; padding:14px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer;">
-                Check Access
-            </button>
-            <p id="accessMessage" style="text-align:center; margin-top:15px; color:#fbbf24; display:none;"></p>
-            <div style="text-align:center; margin-top:20px;">
-                <a href="request.html" style="color:#60a5fa; text-decoration:underline;">Don't have access? Request here</a>
-            </div>
-        </div>
-    `;
+    surveyCard.innerHTML = '<h1 style="text-align:center; margin-bottom:15px;">Survey Access</h1>' +
+        '<p style="text-align:center; color:#cbd5e1; margin-bottom:25px;">Enter your email to check if you have been approved to take the survey.</p>' +
+        '<div style="max-width:400px; margin:0 auto;">' +
+        '<input type="email" id="checkEmail" placeholder="Enter your email address" value="' + pendingEmail + '" ' +
+        'style="width:100%; padding:14px 18px; border-radius:10px; border:1px solid #334155; background:#1e293b; color:#f1f5f9; font-size:16px; margin-bottom:15px; box-sizing:border-box;">' +
+        '<button id="checkAccessBtn" onclick="checkAccessFromSheet()" ' +
+        'style="width:100%; padding:14px; background:#2563eb; color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer;">' +
+        'Check Access</button>' +
+        '<p id="accessMessage" style="text-align:center; margin-top:15px; color:#fbbf24; display:none;"></p>' +
+        '<div style="text-align:center; margin-top:20px;">' +
+        '<a href="request.html" style="color:#60a5fa; text-decoration:underline;">Don\'t have access? Request here</a>' +
+        '</div></div>';
 
-    // Auto-check if there's a pending email from the request form
+    // Auto-check if there's a pending email from request form
     if (pendingEmail) {
         setTimeout(function() { checkAccessFromSheet(); }, 500);
     }
@@ -188,8 +174,8 @@ const submitButton = document.getElementById("submitBtn");
 
 // Check access from Google Sheets
 function checkAccessFromSheet() {
-    const email = document.getElementById("checkEmail").value.trim();
-    const messageEl = document.getElementById("accessMessage");
+    var email = document.getElementById("checkEmail").value.trim();
+    var messageEl = document.getElementById("accessMessage");
 
     if (!email) {
         messageEl.textContent = "Please enter your email address.";
@@ -214,11 +200,14 @@ function checkAccessFromSheet() {
                 messageEl.style.color = "#16a34a";
                 setTimeout(function() { startSurvey(); }, 1000);
             } else if (data.status === "found" && data.accessStatus === "Pending") {
-                messageEl.textContent = "Your request is still pending. Please wait for approval.";
+                messageEl.textContent = "Your request is still pending. Please wait for admin approval.";
                 messageEl.style.color = "#fbbf24";
             } else if (data.status === "found" && data.accessStatus === "Rejected") {
                 messageEl.textContent = "Your access request has been rejected.";
                 messageEl.style.color = "#ef4444";
+            } else if (data.status === "exists") {
+                messageEl.textContent = "Your request status: " + (data.accessStatus || "Pending") + ". Please wait for admin approval.";
+                messageEl.style.color = "#fbbf24";
             } else {
                 messageEl.textContent = "Email not found. Please request access first.";
                 messageEl.style.color = "#ef4444";
@@ -231,85 +220,55 @@ function checkAccessFromSheet() {
         });
 }
 
-// Make checkAccessFromSheet available globally
+// Make it globally accessible for onclick
 window.checkAccessFromSheet = checkAccessFromSheet;
 
 // =======================================
-// Start Survey
+// Start Survey (after access confirmed)
 // =======================================
 
 function startSurvey() {
-    const surveyCard = document.querySelector(".survey-card");
+    var surveyCard = document.getElementById("surveyCard");
 
-    // Rebuild the survey UI
-    surveyCard.innerHTML = `
-        <h1>Laptop Market Research Survey</h1>
-        <p>Please answer the following questions honestly.</p>
-        <div class="progress">
-            <div class="progress-bar" id="progressBar"></div>
-        </div>
-        <div id="progressText">Question 1 of 10</div>
-        <div class="question-area">
-            <h2 id="question">Loading...</h2>
-            <div id="options"></div>
-        </div>
-        <div class="buttons">
-            <button id="previousBtn">Previous</button>
-            <button id="nextBtn">Next</button>
-            <button id="submitBtn">Submit Survey</button>
-        </div>
-    `;
-
-    // Re-grab DOM elements
-    var q = document.getElementById("question");
-    var o = document.getElementById("options");
-    var pb = document.getElementById("progressBar");
-    var pt = document.getElementById("progressText");
-    var prev = document.getElementById("previousBtn");
-    var next = document.getElementById("nextBtn");
-    var sub = document.getElementById("submitBtn");
-
-    // Update global references
-    window._surveyEls = { q, o, pb, pt, prev, next, sub };
+    // Build the survey UI
+    surveyCard.innerHTML =
+        '<h1>Laptop Market Research Survey</h1>' +
+        '<p>Please answer the following questions honestly.</p>' +
+        '<div class="progress"><div class="progress-bar" id="progressBar"></div></div>' +
+        '<div id="progressText">Question 1 of 10</div>' +
+        '<div class="question-area"><h2 id="question">Loading...</h2><div id="options"></div></div>' +
+        '<div class="buttons">' +
+        '<button id="previousBtn">Previous</button>' +
+        '<button id="nextBtn">Next</button>' +
+        '<button id="submitBtn">Submit Survey</button>' +
+        '</div>';
 
     surveyQuestions.push(firstQuestion);
-    loadQuestionDynamic();
+    loadQuestion();
 
-    // Re-attach event listeners
-    next.addEventListener("click", handleNext);
-    prev.addEventListener("click", handlePrevious);
-    sub.addEventListener("click", handleSubmit);
+    // Attach event listeners
+    document.getElementById("nextBtn").addEventListener("click", handleNext);
+    document.getElementById("previousBtn").addEventListener("click", handlePrevious);
+    document.getElementById("submitBtn").addEventListener("click", handleSubmit);
 }
 
 // =======================================
-// Dynamic Question Loading (after access check)
+// Question Loading
 // =======================================
 
-function getSurveyElements() {
-    if (window._surveyEls) return window._surveyEls;
-    return {
-        q: document.getElementById("question"),
-        o: document.getElementById("options"),
-        pb: document.getElementById("progressBar"),
-        pt: document.getElementById("progressText"),
-        prev: document.getElementById("previousBtn"),
-        next: document.getElementById("nextBtn"),
-        sub: document.getElementById("submitBtn")
-    };
-}
+function loadQuestion() {
+    var questionEl = document.getElementById("question");
+    var optionsEl = document.getElementById("options");
+    var progressBarEl = document.getElementById("progressBar");
+    var progressTextEl = document.getElementById("progressText");
 
-function loadQuestionDynamic() {
-    var els = getSurveyElements();
-    els.q.textContent = surveyQuestions[currentQuestion].question;
-    els.o.innerHTML = "";
+    questionEl.textContent = surveyQuestions[currentQuestion].question;
+    optionsEl.innerHTML = "";
 
     surveyQuestions[currentQuestion].options.forEach(function(option) {
-        const label = document.createElement("label");
+        var label = document.createElement("label");
         label.className = "option";
-        label.innerHTML = `
-            <input type="radio" name="answer" value="${option}">
-            ${option}
-        `;
+        label.innerHTML = '<input type="radio" name="answer" value="' + option + '">' + option;
 
         // Restore previously selected answer
         var col = surveyQuestions[currentQuestion].column;
@@ -317,40 +276,34 @@ function loadQuestionDynamic() {
             label.querySelector("input").checked = true;
         }
 
-        els.o.appendChild(label);
+        optionsEl.appendChild(label);
     });
 
-    updateProgressDynamic();
-    updateButtonsDynamic();
-}
+    // Update progress
+    var totalQuestions = (currentQuestion === 0 && !questionBranchLoaded) ? 10 : surveyQuestions.length;
+    progressTextEl.textContent = "Question " + (currentQuestion + 1) + " of " + totalQuestions;
+    progressBarEl.style.width = ((currentQuestion + 1) / totalQuestions) * 100 + "%";
 
-function updateProgressDynamic() {
-    var els = getSurveyElements();
-    var totalQuestions = (currentQuestion === 0 && !questionBranchLoaded)
-        ? 10
-        : surveyQuestions.length;
+    // Update buttons
+    var prevBtn = document.getElementById("previousBtn");
+    var nextBtn = document.getElementById("nextBtn");
+    var subBtn = document.getElementById("submitBtn");
 
-    els.pt.textContent = "Question " + (currentQuestion + 1) + " of " + totalQuestions;
-    els.pb.style.width = ((currentQuestion + 1) / totalQuestions) * 100 + "%";
-}
-
-function updateButtonsDynamic() {
-    var els = getSurveyElements();
-    els.prev.style.display = currentQuestion === 0 ? "none" : "inline-block";
+    prevBtn.style.display = currentQuestion === 0 ? "none" : "inline-block";
 
     if (currentQuestion === 0) {
-        els.next.style.display = "inline-block";
-        els.sub.style.display = "none";
+        nextBtn.style.display = "inline-block";
+        subBtn.style.display = "none";
     } else if (currentQuestion === surveyQuestions.length - 1) {
-        els.next.style.display = "none";
-        els.sub.style.display = "inline-block";
+        nextBtn.style.display = "none";
+        subBtn.style.display = "inline-block";
     } else {
-        els.next.style.display = "inline-block";
-        els.sub.style.display = "none";
+        nextBtn.style.display = "inline-block";
+        subBtn.style.display = "none";
     }
 }
 
-function getSelectedAnswerDynamic() {
+function getSelectedAnswer() {
     var selected = document.querySelector('input[name="answer"]:checked');
     return selected ? selected.value : null;
 }
@@ -366,44 +319,45 @@ function loadQuestionBranch(answer) {
     }
 }
 
+// =======================================
+// Button Handlers
+// =======================================
+
 function handleNext() {
-    var selected = getSelectedAnswerDynamic();
+    var selected = getSelectedAnswer();
     if (!selected) {
         alert("Please select an answer before proceeding.");
         return;
     }
 
-    // Save answer with column name as key
     answers[surveyQuestions[currentQuestion].column] = selected;
 
-    // If on the first question, load branch questions
     if (currentQuestion === 0) {
         loadQuestionBranch(selected);
     }
 
     currentQuestion++;
-    loadQuestionDynamic();
+    loadQuestion();
 }
 
 function handlePrevious() {
     if (currentQuestion > 0) {
-        var selected = getSelectedAnswerDynamic();
+        var selected = getSelectedAnswer();
         if (selected) {
             answers[surveyQuestions[currentQuestion].column] = selected;
         }
         currentQuestion--;
-        loadQuestionDynamic();
+        loadQuestion();
     }
 }
 
 function handleSubmit() {
-    var selected = getSelectedAnswerDynamic();
+    var selected = getSelectedAnswer();
     if (!selected) {
         alert("Please select an answer before submitting.");
         return;
     }
 
-    // Save last answer
     answers[surveyQuestions[currentQuestion].column] = selected;
 
     // Build response data with column names
@@ -443,22 +397,14 @@ function handleSubmit() {
     sendToGoogleSheets(responseData);
 
     // Show thank you message
-    var surveyCard = document.querySelector(".survey-card");
-    surveyCard.innerHTML = `
-        <h1 style="text-align:center; margin-bottom:15px;">Thank You!</h1>
-        <p style="text-align:center; color:#cbd5e1; margin-bottom:25px;">
-            Your survey responses have been recorded successfully.
-            We appreciate your participation in the Laptop Market Research.
-        </p>
-        <div style="text-align:center; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-            <a href="dashboard.html" style="display:inline-block; padding:14px 28px; background:#16a34a; color:#fff; border-radius:10px; text-decoration:none; font-weight:600;">
-                View Dashboard
-            </a>
-            <a href="index.html" style="display:inline-block; padding:14px 28px; background:#2563eb; color:#fff; border-radius:10px; text-decoration:none; font-weight:600;">
-                Back to Home
-            </a>
-        </div>
-    `;
+    var surveyCard = document.getElementById("surveyCard");
+    surveyCard.innerHTML =
+        '<h1 style="text-align:center; margin-bottom:15px;">Thank You!</h1>' +
+        '<p style="text-align:center; color:#cbd5e1; margin-bottom:25px;">Your survey responses have been recorded successfully. We appreciate your participation in the Laptop Market Research.</p>' +
+        '<div style="text-align:center; display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">' +
+        '<a href="dashboard.html" style="display:inline-block; padding:14px 28px; background:#16a34a; color:#fff; border-radius:10px; text-decoration:none; font-weight:600;">View Dashboard</a>' +
+        '<a href="index.html" style="display:inline-block; padding:14px 28px; background:#2563eb; color:#fff; border-radius:10px; text-decoration:none; font-weight:600;">Back to Home</a>' +
+        '</div>';
 }
 
 // =======================================
