@@ -1,0 +1,20 @@
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Poppins,sans-serif;background:linear-gradient(135deg,#08111f,#163d6b);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:30px;color:#fff}
+.survey-container{width:100%;max-width:850px}
+.survey-card{background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);padding:35px;border-radius:18px}
+h1{text-align:center;margin-bottom:8px}
+p{text-align:center;color:#cbd5e1;margin-bottom:20px}
+.progress{height:12px;background:#223;border-radius:20px;overflow:hidden;margin:20px 0}
+.progress-bar{height:100%;width:10%;background:#3b82f6;transition:.4s}
+#progressText{text-align:right;margin-bottom:20px;color:#cbd5e1}
+.question-area h2{margin-bottom:18px}
+#options{display:flex;flex-direction:column;gap:12px}
+.option{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #38507a;border-radius:10px;background:#10213a}
+.option:hover{border-color:#60a5fa}
+.buttons{display:flex;justify-content:space-between;gap:12px;margin-top:30px}
+button{flex:1;padding:14px;border:none;border-radius:10px;background:#2563eb;color:#fff;cursor:pointer}
+button:hover{background:#1d4ed8}
+#submitBtn{display:none;background:#16a34a}
+#submitBtn:hover{background:#15803d}
+@media(max-width:600px){.buttons{flex-direction:column}.survey-card{padding:22px}}

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Request Access | Laptop Market Research</title>
+
+    <link rel="stylesheet" href="css/request.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="form-box">
+
+            <h1>Request Survey Access</h1>
+
+            <p>
+                Complete the form below to request access to the Laptop Market Research Survey.
+            </p>
+
+            <form id="requestForm">
+
+                <div class="input-box">
+
+                    <label>Full Name</label>
+
+                    <input
+                        type="text"
+                        id="name"
+                        placeholder="Enter your full name"
+                        required>
+
+                </div>
+
+                <div class="input-box">
+
+                    <label>Email Address</label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="Enter your email"
+                        required>
+
+                </div>
+
+                <div class="input-box">
+
+                    <label>Phone Number</label>
+
+                    <input
+                        type="tel"
+                        id="phone"
+                        placeholder="Enter your phone number"
+                        required>
+
+                </div>
+
+                <div class="input-box">
+
+                    <label>Occupation</label>
+
+                    <select id="occupation" required>
+
+                        <option value="">Select</option>
+
+                        <option>Student</option>
+
+                        <option>Employee</option>
+
+                        <option>Business Owner</option>
+
+                        <option>Freelancer</option>
+
+                        <option>Other</option>
+
+                    </select>
+
+                </div>
+
+                <div class="input-box">
+
+                    <label>Purpose</label>
+
+                    <textarea
+                        id="purpose"
+                        rows="4"
+                        placeholder="Why do you want to participate?"
+                        required></textarea>
+
+                </div>
+
+                <button type="submit">
+
+                    Submit Request
+
+                </button>
+
+            </form>
+
+            <div id="successMessage">
+
+                <h2>Request Submitted Successfully!</h2>
+
+                <p>
+
+                    Your request has been received.
+
+                    After administrator approval, you will receive access to the survey.
+
+                </p>
+
+            </div>
+
+            <br>
+
+            <a href="index.html">
+
+                ← Back to Home
+
+            </a>
+
+        </div>
+
+    </div>
+
+    <script src="js/request.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,54 @@
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Poppins,sans-serif;background:#0b1220;color:#eef2ff;line-height:1.6}
+html{scroll-behavior:smooth}
+nav{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;padding:18px 8%;background:rgba(8,12,24,.9);backdrop-filter:blur(8px);border-bottom:1px solid #223}
+.logo{font-size:1.5rem;font-weight:700;color:#4ea3ff}
+nav ul{display:flex;list-style:none;gap:24px}
+nav a{text-decoration:none;color:#fff}
+.btn,.primary,.secondary{padding:12px 22px;border-radius:10px;text-decoration:none;display:inline-block;transition:.3s}
+.btn,.primary{background:#2563eb;color:#fff}
+.secondary{border:1px solid #4ea3ff;color:#4ea3ff}
+.btn:hover,.primary:hover{background:#1d4ed8;transform:translateY(-2px)}
+.secondary:hover{background:#4ea3ff;color:#08111f}
+.hero{min-height:90vh;display:flex;align-items:center;justify-content:center;padding:60px 8%;background:linear-gradient(135deg,#07111f,#10294d)}
+.hero-content{max-width:800px;text-align:center}
+.hero h1{font-size:3rem;margin-bottom:20px}
+.hero p{font-size:1.1rem;color:#cbd5e1;margin-bottom:30px}
+.buttons{display:flex;justify-content:center;gap:16px;flex-wrap:wrap}
+.container{width:min(1100px,92%);margin:auto;padding:80px 0}
+h2{text-align:center;margin-bottom:30px;font-size:2.2rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:22px}
+.card{background:rgba(255,255,255,.06);padding:24px;border-radius:16px;border:1px solid rgba(255,255,255,.08);transition:.3s}
+.card:hover{transform:translateY(-8px)}
+.flow{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;align-items:center}
+.flow div{background:#1e3a8a;padding:14px 18px;border-radius:10px}
+.cta{text-align:center;padding:80px 20px;background:#111b2e}
+footer{text-align:center;padding:20px;background:#050912;color:#94a3b8}
+@media(max-width:768px){
+nav{flex-direction:column;gap:14px}
+nav ul{flex-wrap:wrap;justify-content:center}
+.hero h1{font-size:2.2rem}
+}
+/* Scroll Animation */
+
+.hidden
+{
+    opacity: 0;
+    transform: translateY(50px);
+    transition: all 0.8s ease;
+}
+
+.show
+{
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Active Navigation Link */
+
+nav ul li a.active
+{
+    color: #4ea3ff;
+    font-weight: 600;
+}
