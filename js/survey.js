@@ -178,49 +178,43 @@ function checkAccessFromSheet(email, onSuccess, onError) {
 })();
 
 // =======================================
-// Survey Logic - 10 Questions Per Branch
+// Survey Logic - Step Based
+// Q1 common, then 10 questions per branch
 // =======================================
 
 var surveyStep = 0;
 var surveyAnswers = {};
 var surveyEmail = "";
-var surveyQuestions = [];
+var surveyQuestions = []; // Will hold the 10 branch questions
 
-// ALL questions - Q1 is common, then branch based on answer
 var ALL_QUESTIONS = [
+    // Q1 - Common
     {
         id: "ownership",
-        text: "Do you currently own a laptop?",
+        text: "Do you have a laptop?",
         column: "Laptop Ownership",
         options: ["Yes", "No"]
     },
-    // ===== OWNER BRANCH (10 questions) =====
+    // ===== YES BRANCH (10 questions: Q2-Q11) =====
     {
         id: "usage",
-        text: "What is your primary usage purpose?",
+        text: "What do you mainly use your laptop for?",
         column: "Usage Purpose",
-        options: ["Study", "Work", "Gaming", "Content Creation", "General Use"],
-        branch: "Yes"
-    },
-    {
-        id: "brand",
-        text: "Which brand is your current laptop?",
-        column: "Preferred Brand",
-        options: ["HP", "Dell", "Lenovo", "Asus", "Acer", "Apple", "Other"],
+        options: ["Study", "Gaming", "Office Work", "Designing/Editing", "Coding"],
         branch: "Yes"
     },
     {
         id: "feature",
-        text: "Which feature do you find most useful in your laptop?",
+        text: "What do you find most useful in your current laptop?",
         column: "Useful Features",
-        options: ["Battery Life", "Display Quality", "Keyboard Comfort", "Performance", "Portability"],
+        options: ["Performance", "Battery Life", "Storage", "Display Quality", "Portability"],
         branch: "Yes"
     },
     {
         id: "problems",
-        text: "What problems do you face with your current laptop?",
+        text: "What problem do you face most often with your current laptop?",
         column: "Current Laptop Problems",
-        options: ["Battery Life", "Heating Problem", "Slow Performance", "Display Issues", "None"],
+        options: ["Slow Performance", "Battery Issue", "Heating", "Storage Shortage", "No Major Problem"],
         branch: "Yes"
     },
     {
@@ -232,30 +226,37 @@ var ALL_QUESTIONS = [
     },
     {
         id: "improvement",
-        text: "What improvement do you need in your current laptop?",
+        text: "Which feature would you like to improve the most?",
         column: "Improvement Needed",
-        options: ["Better Battery", "Faster Performance", "Better Display", "Lighter Weight", "More Storage"],
+        options: ["Processor", "RAM", "Graphics", "Battery", "Display"],
         branch: "Yes"
     },
     {
         id: "upgrade",
-        text: "How often do you upgrade your laptop?",
+        text: "How often do you upgrade or replace your laptop?",
         column: "Upgrade Frequency",
-        options: ["Every Year", "Every 2 Years", "Every 3 Years", "Every 5 Years", "Never"],
+        options: ["Every 1\u20132 Years", "Every 3\u20134 Years", "Every 5+ Years", "Only When Necessary"],
+        branch: "Yes"
+    },
+    {
+        id: "brand",
+        text: "Which laptop brand do you currently use?",
+        column: "Preferred Brand",
+        options: ["HP", "Dell", "Lenovo", "ASUS", "Apple", "Acer", "Other"],
         branch: "Yes"
     },
     {
         id: "buyingFactor",
-        text: "What was your main buying factor for your current laptop?",
+        text: "What is the most important factor when buying a laptop?",
         column: "Buying Factor",
-        options: ["Price", "Brand Reputation", "Specifications", "Reviews", "Design"],
+        options: ["Price", "Performance", "Battery Life", "Brand", "Design"],
         branch: "Yes"
     },
     {
-        id: "recommendedLaptop",
-        text: "Would you recommend your laptop to others?",
+        id: "recommend",
+        text: "Would you recommend your current laptop to others?",
         column: "Recommended Laptop",
-        options: ["Definitely Yes", "Yes", "Maybe", "No", "Definitely No"],
+        options: ["Yes", "Maybe", "No"],
         branch: "Yes"
     },
     {
@@ -265,75 +266,75 @@ var ALL_QUESTIONS = [
         options: ["1\u20132 Years", "2\u20133 Years", "3\u20135 Years", "5+ Years"],
         branch: "Yes"
     },
-    // ===== BUYER BRANCH (10 questions) =====
+    // ===== NO BRANCH (10 questions: Q2-Q11) =====
     {
-        id: "budget",
-        text: "What is your budget for a new laptop?",
-        column: "Budget",
-        options: ["Under \u20B930,000", "\u20B930,000 \u2013 \u20B950,000", "\u20B950,000 \u2013 \u20B980,000", "Above \u20B980,000"],
+        id: "whyBuy",
+        text: "Why do you want to buy a laptop?",
+        column: "Usage Purpose",
+        options: ["Study", "Gaming", "Office Work", "Coding", "Entertainment"],
         branch: "No"
     },
     {
-        id: "brandBuyer",
-        text: "Which brand would you prefer?",
-        column: "Preferred Brand",
-        options: ["HP", "Dell", "Lenovo", "Asus", "Acer", "Apple", "Other"],
+        id: "laptopType",
+        text: "Which type of laptop would you prefer?",
+        column: "Preferred Laptop",
+        options: ["Student Laptop", "Gaming Laptop", "Business Laptop", "Budget Laptop", "Premium Laptop"],
+        branch: "No"
+    },
+    {
+        id: "budget",
+        text: "What is your expected budget?",
+        column: "Budget",
+        options: ["Below \u20B930,000", "\u20B930,000\u2013\u20B950,000", "\u20B950,000\u2013\u20B980,000", "Above \u20B980,000"],
         branch: "No"
     },
     {
         id: "featureBuyer",
-        text: "Which feature matters most to you?",
+        text: "Which feature is most important to you?",
         column: "Useful Features",
-        options: ["Battery Life", "Display Quality", "Keyboard Comfort", "Performance", "Portability"],
-        branch: "No"
-    },
-    {
-        id: "decision",
-        text: "What is your final decision factor when buying a laptop?",
-        column: "Final Decision Factor",
-        options: ["Price", "Brand", "Specifications", "Reviews", "Design"],
-        branch: "No"
-    },
-    {
-        id: "buyingFactorBuyer",
-        text: "What influences your buying decision the most?",
-        column: "Buying Factor",
-        options: ["Online Reviews", "Friend Recommendation", "Store Visit", "Social Media", "Advertisements"],
-        branch: "No"
-    },
-    {
-        id: "recommendedLaptopBuyer",
-        text: "Which laptop would you prefer based on recommendations?",
-        column: "Recommended Laptop",
-        options: ["HP", "Dell", "Lenovo", "Asus", "Acer", "Apple"],
-        branch: "No"
-    },
-    {
-        id: "preferredLaptop",
-        text: "What type of laptop do you prefer?",
-        column: "Preferred Laptop",
-        options: ["Gaming Laptop", "Business Laptop", "Ultrabook", "2-in-1 Convertible", "Budget Laptop"],
+        options: ["Performance", "Battery Life", "Storage", "Graphics", "Design"],
         branch: "No"
     },
     {
         id: "screenSize",
-        text: "What screen size do you prefer?",
+        text: "Which screen size do you prefer?",
         column: "Screen Size",
-        options: ["11\u201312 inch", "13\u201314 inch", "15\u201316 inch", "17+ inch"],
+        options: ["13\u201314 Inch", "15\u201316 Inch", "17 Inch or Larger"],
+        branch: "No"
+    },
+    {
+        id: "brandBuyer",
+        text: "Which laptop brand would you prefer?",
+        column: "Preferred Brand",
+        options: ["HP", "Dell", "Lenovo", "ASUS", "Apple", "Acer", "Other"],
         branch: "No"
     },
     {
         id: "expectedLifeBuyer",
         text: "How long do you expect your laptop to last?",
         column: "Expected Laptop Life",
-        options: ["1\u20132 Years", "2\u20133 Years", "3\u20135 Years", "5+ Years"],
+        options: ["1\u20132 Years", "3\u20135 Years", "More Than 5 Years"],
         branch: "No"
     },
     {
         id: "buyingPlace",
-        text: "Where do you plan to buy your laptop from?",
+        text: "Where would you prefer to buy a laptop?",
         column: "Buying Place",
-        options: ["Online (Amazon/Flipkart)", "Brand Store", "Local Shop", "Other"],
+        options: ["Online", "Offline Store", "Brand Store", "Second-Hand Market"],
+        branch: "No"
+    },
+    {
+        id: "decision",
+        text: "What will influence your final buying decision the most?",
+        column: "Final Decision Factor",
+        options: ["Price", "Reviews", "Specifications", "Brand Reputation", "Recommendations"],
+        branch: "No"
+    },
+    {
+        id: "buyingFactorBuyer",
+        text: "What is the most important factor when buying a laptop?",
+        column: "Buying Factor",
+        options: ["Price", "Performance", "Battery Life", "Brand", "Design"],
         branch: "No"
     }
 ];
@@ -407,7 +408,7 @@ function renderQuestion() {
     if (qIndex < 0 || qIndex >= surveyQuestions.length) return;
 
     var q = surveyQuestions[qIndex];
-    var total = surveyQuestions.length + 1;
+    var total = surveyQuestions.length + 1; // +1 for ownership question
 
     var pct = ((surveyStep + 1) / total) * 100;
     document.getElementById("progressBar").style.width = pct + "%";
