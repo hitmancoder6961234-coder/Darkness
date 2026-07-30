@@ -47,19 +47,9 @@ function submitNewRequest() {
     var purpose = document.getElementById("newPurpose").value.trim();
     var msgEl = document.getElementById("newRequestMsg");
 
-    // Validation
-    if (!name) {
-        showStatus(msgEl, "error", "Please enter your name.");
-        return;
-    }
-    if (!email || !isValidEmail(email)) {
-        showStatus(msgEl, "error", "Please enter a valid email address.");
-        return;
-    }
-    if (!mobile) {
-        showStatus(msgEl, "error", "Please enter your mobile number.");
-        return;
-    }
+    if (!name) { showStatus(msgEl, "error", "Please enter your name."); return; }
+    if (!email || !isValidEmail(email)) { showStatus(msgEl, "error", "Please enter a valid email address."); return; }
+    if (!mobile) { showStatus(msgEl, "error", "Please enter your mobile number."); return; }
 
     showStatus(msgEl, "info", "Submitting your request...");
 
@@ -72,47 +62,27 @@ function submitNewRequest() {
     };
 
     sendToGoogleSheets(data, function() {
-        // After submitting, go to "Sign in Already" page with the email pre-filled
         showStatus(msgEl, "info", "Request submitted! Checking your status...");
-
         setTimeout(function() {
-            // Switch to "Sign in Already" screen
             showSignInAlready();
             document.getElementById("existingEmail").value = email;
             var msgEl2 = document.getElementById("existingStatusMsg");
-
             showStatus(msgEl2, "info", "Checking your access for <strong>" + email + "</strong>...");
-
             checkAccessFromSheet(email, function(status) {
                 if (status === "Accepted") {
-                    showStatus(msgEl2, "success",
-                        "Your access has been <strong>Approved</strong>! Starting survey..."
-                    );
-                    setTimeout(function() {
-                        startSurvey(email);
-                    }, 1200);
+                    showStatus(msgEl2, "success", "Your access has been <strong>Approved</strong>! Starting survey...");
+                    setTimeout(function() { startSurvey(email); }, 1200);
                 } else if (status === "Pending") {
-                    showStatus(msgEl2, "warning",
-                        "Your request is currently <strong>Pending</strong>.<br>" +
-                        "Please wait for admin approval. You will receive an email once approved."
-                    );
+                    showStatus(msgEl2, "warning", "Your request is currently <strong>Pending</strong>.<br>Please wait for admin approval. You will receive an email once approved.");
                 } else {
-                    showStatus(msgEl2, "success",
-                        "Your request has been submitted! Status: <strong>Pending</strong>.<br>" +
-                        "Please wait for admin approval. You will receive an email once approved."
-                    );
+                    showStatus(msgEl2, "success", "Your request has been submitted! Status: <strong>Pending</strong>.<br>Please wait for admin approval.");
                 }
             }, function() {
-                showStatus(msgEl2, "success",
-                    "Your request has been submitted! Status: <strong>Pending</strong>.<br>" +
-                    "Please wait for admin approval."
-                );
+                showStatus(msgEl2, "success", "Your request has been submitted! Status: <strong>Pending</strong>.<br>Please wait for admin approval.");
             });
         }, 2000);
     }, function() {
-        showStatus(msgEl, "error",
-            "There was an error submitting your request. Please try again."
-        );
+        showStatus(msgEl, "error", "There was an error submitting your request. Please try again.");
     });
 }
 
@@ -124,36 +94,20 @@ function checkExistingAccess() {
     var email = document.getElementById("existingEmail").value.trim();
     var msgEl = document.getElementById("existingStatusMsg");
 
-    if (!email || !isValidEmail(email)) {
-        showStatus(msgEl, "error", "Please enter a valid email address.");
-        return;
-    }
+    if (!email || !isValidEmail(email)) { showStatus(msgEl, "error", "Please enter a valid email address."); return; }
 
     showStatus(msgEl, "info", "Checking your access status...");
 
     checkAccessFromSheet(email, function(status) {
         if (status === "Accepted") {
-            showStatus(msgEl, "success",
-                "Your access has been <strong>Approved</strong>! Starting survey..."
-            );
-            setTimeout(function() {
-                startSurvey(email);
-            }, 1200);
+            showStatus(msgEl, "success", "Your access has been <strong>Approved</strong>! Starting survey...");
+            setTimeout(function() { startSurvey(email); }, 1200);
         } else if (status === "Pending") {
-            showStatus(msgEl, "warning",
-                "Your request is currently <strong>Pending</strong>.<br>" +
-                "Please wait for admin approval. You will receive an email once approved."
-            );
+            showStatus(msgEl, "warning", "Your request is currently <strong>Pending</strong>.<br>Please wait for admin approval. You will receive an email once approved.");
         } else if (status === "Rejected") {
-            showStatus(msgEl, "error",
-                "Your request has been <strong>Rejected</strong>.<br>" +
-                "Please contact the admin for more information."
-            );
+            showStatus(msgEl, "error", "Your request has been <strong>Rejected</strong>.<br>Please contact the admin for more information.");
         } else {
-            showStatus(msgEl, "error",
-                "No request found for this email.<br>" +
-                "Please <strong>\"Sign in as New\"</strong> to submit an access request first."
-            );
+            showStatus(msgEl, "error", "No request found for this email.<br>Please <strong>\"Sign in as New\"</strong> to submit an access request first.");
         }
     }, function() {
         showStatus(msgEl, "error", "Could not check your status. Please try again.");
@@ -166,38 +120,24 @@ function checkExistingAccess() {
 
 function checkAccessFromSheet(email, onSuccess, onError) {
     var url = GOOGLE_SHEETS_URL + "?action=checkAccess&email=" + encodeURIComponent(email);
-
     fetch(url)
         .then(function(response) { return response.json(); })
         .then(function(data) {
             console.log("checkAccess response:", data);
-            if (!data) {
-                onSuccess("Not Found");
-                return;
-            }
-
+            if (!data) { onSuccess("Not Found"); return; }
             var accessStatus = "";
-
             if (data.status === "not_found" || data.status === "Not Found" || data.status === "not found") {
                 accessStatus = "Not Found";
             } else if (data.status === "found" || data.status === "exists") {
-                if (data.accessStatus && data.accessStatus !== "None") {
-                    accessStatus = data.accessStatus;
-                } else if (data.currentStatus) {
-                    accessStatus = data.currentStatus;
-                } else {
-                    accessStatus = "Unknown";
-                }
+                if (data.accessStatus && data.accessStatus !== "None") { accessStatus = data.accessStatus; }
+                else if (data.currentStatus) { accessStatus = data.currentStatus; }
+                else { accessStatus = "Unknown"; }
             } else {
                 accessStatus = data.status;
             }
-
             onSuccess(accessStatus);
         })
-        .catch(function(error) {
-            console.error("Access check error:", error);
-            onError(error);
-        });
+        .catch(function(error) { console.error("Access check error:", error); onError(error); });
 }
 
 // =======================================
@@ -205,7 +145,6 @@ function checkAccessFromSheet(email, onSuccess, onError) {
 // =======================================
 
 (function autoCheckFromURL() {
-    // Clear old localStorage data
     localStorage.removeItem("approvedEmail");
     localStorage.removeItem("pendingEmail");
     localStorage.removeItem("pendingName");
@@ -217,39 +156,21 @@ function checkAccessFromSheet(email, onSuccess, onError) {
 
     if (emailParam && isValidEmail(emailParam)) {
         document.getElementById("existingEmail").value = emailParam;
-
         showSignInAlready();
-        showStatus(document.getElementById("existingStatusMsg"), "info",
-            "Checking your access for <strong>" + emailParam + "</strong>..."
-        );
-
+        showStatus(document.getElementById("existingStatusMsg"), "info", "Checking your access for <strong>" + emailParam + "</strong>...");
         checkAccessFromSheet(emailParam, function(status) {
             var msgEl = document.getElementById("existingStatusMsg");
             if (status === "Accepted") {
-                showStatus(msgEl, "success",
-                    "Your access has been <strong>Approved</strong>! Starting survey..."
-                );
-                setTimeout(function() {
-                    startSurvey(emailParam);
-                }, 800);
+                showStatus(msgEl, "success", "Your access has been <strong>Approved</strong>! Starting survey...");
+                setTimeout(function() { startSurvey(emailParam); }, 800);
             } else if (status === "Pending") {
-                showStatus(msgEl, "warning",
-                    "Your request is currently <strong>Pending</strong>.<br>" +
-                    "Please wait for admin approval. You will receive an email once approved."
-                );
+                showStatus(msgEl, "warning", "Your request is currently <strong>Pending</strong>.<br>Please wait for admin approval.");
             } else {
-                showStatus(msgEl, "error",
-                    "No approved request found for this email.<br>" +
-                    "Please <strong>\"Sign in as New\"</strong> to submit an access request."
-                );
-                setTimeout(function() {
-                    showSignInChoice();
-                }, 2000);
+                showStatus(msgEl, "error", "No approved request found for this email.<br>Please <strong>\"Sign in as New\"</strong> to submit an access request.");
+                setTimeout(function() { showSignInChoice(); }, 2000);
             }
         }, function() {
-            showStatus(document.getElementById("existingStatusMsg"), "error",
-                "Could not verify your access. Please try again."
-            );
+            showStatus(document.getElementById("existingStatusMsg"), "error", "Could not verify your access. Please try again.");
         });
     } else {
         showSignInChoice();
@@ -257,14 +178,15 @@ function checkAccessFromSheet(email, onSuccess, onError) {
 })();
 
 // =======================================
-// Survey Logic - Step Based (No Dynamic Filtering)
+// Survey Logic - 10 Questions Per Branch
 // =======================================
 
 var surveyStep = 0;
 var surveyAnswers = {};
 var surveyEmail = "";
-var surveyQuestions = []; // The active question list for this user
+var surveyQuestions = [];
 
+// ALL questions - Q1 is common, then branch based on answer
 var ALL_QUESTIONS = [
     {
         id: "ownership",
@@ -272,7 +194,7 @@ var ALL_QUESTIONS = [
         column: "Laptop Ownership",
         options: ["Yes", "No"]
     },
-    // ===== OWNER BRANCH =====
+    // ===== OWNER BRANCH (10 questions) =====
     {
         id: "usage",
         text: "What is your primary usage purpose?",
@@ -288,10 +210,10 @@ var ALL_QUESTIONS = [
         branch: "Yes"
     },
     {
-        id: "satisfaction",
-        text: "How satisfied are you with your current laptop?",
-        column: "Satisfaction Level",
-        options: ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied", "Very Dissatisfied"],
+        id: "feature",
+        text: "Which feature do you find most useful in your laptop?",
+        column: "Useful Features",
+        options: ["Battery Life", "Display Quality", "Keyboard Comfort", "Performance", "Portability"],
         branch: "Yes"
     },
     {
@@ -302,13 +224,48 @@ var ALL_QUESTIONS = [
         branch: "Yes"
     },
     {
-        id: "feature",
-        text: "Which feature do you find most useful in your laptop?",
-        column: "Useful Features",
-        options: ["Battery Life", "Display Quality", "Keyboard Comfort", "Performance", "Portability"],
+        id: "satisfaction",
+        text: "How satisfied are you with your current laptop?",
+        column: "Satisfaction Level",
+        options: ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied", "Very Dissatisfied"],
         branch: "Yes"
     },
-    // ===== BUYER BRANCH =====
+    {
+        id: "improvement",
+        text: "What improvement do you need in your current laptop?",
+        column: "Improvement Needed",
+        options: ["Better Battery", "Faster Performance", "Better Display", "Lighter Weight", "More Storage"],
+        branch: "Yes"
+    },
+    {
+        id: "upgrade",
+        text: "How often do you upgrade your laptop?",
+        column: "Upgrade Frequency",
+        options: ["Every Year", "Every 2 Years", "Every 3 Years", "Every 5 Years", "Never"],
+        branch: "Yes"
+    },
+    {
+        id: "buyingFactor",
+        text: "What was your main buying factor for your current laptop?",
+        column: "Buying Factor",
+        options: ["Price", "Brand Reputation", "Specifications", "Reviews", "Design"],
+        branch: "Yes"
+    },
+    {
+        id: "recommendedLaptop",
+        text: "Would you recommend your laptop to others?",
+        column: "Recommended Laptop",
+        options: ["Definitely Yes", "Yes", "Maybe", "No", "Definitely No"],
+        branch: "Yes"
+    },
+    {
+        id: "expectedLife",
+        text: "How long do you expect your laptop to last?",
+        column: "Expected Laptop Life",
+        options: ["1\u20132 Years", "2\u20133 Years", "3\u20135 Years", "5+ Years"],
+        branch: "Yes"
+    },
+    // ===== BUYER BRANCH (10 questions) =====
     {
         id: "budget",
         text: "What is your budget for a new laptop?",
@@ -324,13 +281,6 @@ var ALL_QUESTIONS = [
         branch: "No"
     },
     {
-        id: "decision",
-        text: "What is your final decision factor when buying a laptop?",
-        column: "Final Decision Factor",
-        options: ["Price", "Brand", "Specifications", "Reviews", "Design"],
-        branch: "No"
-    },
-    {
         id: "featureBuyer",
         text: "Which feature matters most to you?",
         column: "Useful Features",
@@ -338,10 +288,52 @@ var ALL_QUESTIONS = [
         branch: "No"
     },
     {
-        id: "usageBuyer",
-        text: "What will be your primary usage purpose?",
-        column: "Usage Purpose",
-        options: ["Study", "Work", "Gaming", "Content Creation", "General Use"],
+        id: "decision",
+        text: "What is your final decision factor when buying a laptop?",
+        column: "Final Decision Factor",
+        options: ["Price", "Brand", "Specifications", "Reviews", "Design"],
+        branch: "No"
+    },
+    {
+        id: "buyingFactorBuyer",
+        text: "What influences your buying decision the most?",
+        column: "Buying Factor",
+        options: ["Online Reviews", "Friend Recommendation", "Store Visit", "Social Media", "Advertisements"],
+        branch: "No"
+    },
+    {
+        id: "recommendedLaptopBuyer",
+        text: "Which laptop would you prefer based on recommendations?",
+        column: "Recommended Laptop",
+        options: ["HP", "Dell", "Lenovo", "Asus", "Acer", "Apple"],
+        branch: "No"
+    },
+    {
+        id: "preferredLaptop",
+        text: "What type of laptop do you prefer?",
+        column: "Preferred Laptop",
+        options: ["Gaming Laptop", "Business Laptop", "Ultrabook", "2-in-1 Convertible", "Budget Laptop"],
+        branch: "No"
+    },
+    {
+        id: "screenSize",
+        text: "What screen size do you prefer?",
+        column: "Screen Size",
+        options: ["11\u201312 inch", "13\u201314 inch", "15\u201316 inch", "17+ inch"],
+        branch: "No"
+    },
+    {
+        id: "expectedLifeBuyer",
+        text: "How long do you expect your laptop to last?",
+        column: "Expected Laptop Life",
+        options: ["1\u20132 Years", "2\u20133 Years", "3\u20135 Years", "5+ Years"],
+        branch: "No"
+    },
+    {
+        id: "buyingPlace",
+        text: "Where do you plan to buy your laptop from?",
+        column: "Buying Place",
+        options: ["Online (Amazon/Flipkart)", "Brand Store", "Local Shop", "Other"],
         branch: "No"
     }
 ];
@@ -350,64 +342,47 @@ function startSurvey(email) {
     surveyEmail = email;
     surveyAnswers = {};
     surveyStep = 0;
-    surveyQuestions = []; // Will be built after Q1 is answered
+    surveyQuestions = [];
 
     showScreen("surveyArea");
-    // Show Q1 first (ownership question)
     renderOwnershipQuestion();
 }
 
 function renderOwnershipQuestion() {
-    var q = ALL_QUESTIONS[0]; // ownership question
+    var q = ALL_QUESTIONS[0];
 
-    // Update progress
-    document.getElementById("progressBar").style.width = "17%";
-    document.getElementById("progressText").textContent = "Question 1 of 6";
+    document.getElementById("progressBar").style.width = "9%";
+    document.getElementById("progressText").textContent = "Question 1 of 11";
 
-    // Question text
     document.getElementById("questionText").textContent = q.text;
 
-    // Options
     var optionsDiv = document.getElementById("options");
     optionsDiv.innerHTML = "";
 
     q.options.forEach(function(opt) {
         var div = document.createElement("div");
         div.className = "option";
-
         var radio = document.createElement("input");
         radio.type = "radio";
         radio.name = q.id;
         radio.value = opt;
-
         var label = document.createElement("span");
         label.textContent = opt;
-
         div.appendChild(radio);
         div.appendChild(label);
 
         div.addEventListener("click", function() {
-            // Clear previous selection
             var allOptions = optionsDiv.querySelectorAll(".option");
             allOptions.forEach(function(o) { o.classList.remove("selected"); });
             div.classList.add("selected");
             radio.checked = true;
-
-            // Save answer
             surveyAnswers.ownership = opt;
-
-            // Build the question list based on this answer
             buildBranchQuestions(opt);
-
-            // Show Next button
-            document.getElementById("nextBtn").style.display = "block";
-            document.getElementById("submitBtn").style.display = "none";
         });
 
         optionsDiv.appendChild(div);
     });
 
-    // Buttons: only Next, no Previous, no Submit
     document.getElementById("prevBtn").style.display = "none";
     document.getElementById("nextBtn").style.display = "block";
     document.getElementById("submitBtn").style.display = "none";
@@ -415,7 +390,6 @@ function renderOwnershipQuestion() {
 
 function buildBranchQuestions(ownershipAnswer) {
     surveyQuestions = [];
-    // Add all questions that match the branch
     for (var i = 1; i < ALL_QUESTIONS.length; i++) {
         if (ALL_QUESTIONS[i].branch === ownershipAnswer) {
             surveyQuestions.push(ALL_QUESTIONS[i]);
@@ -424,28 +398,23 @@ function buildBranchQuestions(ownershipAnswer) {
 }
 
 function renderQuestion() {
-    // If we're at step 0, show the ownership question
     if (surveyStep === 0) {
         renderOwnershipQuestion();
         return;
     }
 
-    // For steps 1+, use the branch questions
-    var qIndex = surveyStep - 1; // index into surveyQuestions
+    var qIndex = surveyStep - 1;
     if (qIndex < 0 || qIndex >= surveyQuestions.length) return;
 
     var q = surveyQuestions[qIndex];
-    var total = surveyQuestions.length + 1; // +1 for ownership question
+    var total = surveyQuestions.length + 1;
 
-    // Update progress
     var pct = ((surveyStep + 1) / total) * 100;
     document.getElementById("progressBar").style.width = pct + "%";
     document.getElementById("progressText").textContent = "Question " + (surveyStep + 1) + " of " + total;
 
-    // Question text
     document.getElementById("questionText").textContent = q.text;
 
-    // Options
     var optionsDiv = document.getElementById("options");
     optionsDiv.innerHTML = "";
 
@@ -459,10 +428,8 @@ function renderQuestion() {
         radio.name = q.id;
         radio.value = opt;
         radio.checked = (surveyAnswers[q.id] === opt);
-
         var label = document.createElement("span");
         label.textContent = opt;
-
         div.appendChild(radio);
         div.appendChild(label);
 
@@ -477,39 +444,26 @@ function renderQuestion() {
         optionsDiv.appendChild(div);
     });
 
-    // Buttons
     var isLast = (qIndex === surveyQuestions.length - 1);
-
     document.getElementById("prevBtn").style.display = "block";
     document.getElementById("nextBtn").style.display = isLast ? "none" : "block";
     document.getElementById("submitBtn").style.display = isLast ? "block" : "none";
 }
 
 function nextQuestion() {
-    // Check if current question is answered
     if (surveyStep === 0) {
-        if (!surveyAnswers.ownership) {
-            alert("Please select an option before proceeding.");
-            return;
-        }
+        if (!surveyAnswers.ownership) { alert("Please select an option before proceeding."); return; }
     } else {
         var qIndex = surveyStep - 1;
         var q = surveyQuestions[qIndex];
-        if (!surveyAnswers[q.id]) {
-            alert("Please select an option before proceeding.");
-            return;
-        }
+        if (!surveyAnswers[q.id]) { alert("Please select an option before proceeding."); return; }
     }
-
     surveyStep++;
     renderQuestion();
 }
 
 function prevQuestion() {
-    if (surveyStep > 0) {
-        surveyStep--;
-        renderQuestion();
-    }
+    if (surveyStep > 0) { surveyStep--; renderQuestion(); }
 }
 
 // =======================================
@@ -517,30 +471,17 @@ function prevQuestion() {
 // =======================================
 
 function handleSubmit() {
-    // Check last question is answered
     var qIndex = surveyStep - 1;
     var q = surveyQuestions[qIndex];
-    if (!surveyAnswers[q.id]) {
-        alert("Please select an option before submitting.");
-        return;
-    }
+    if (!surveyAnswers[q.id]) { alert("Please select an option before submitting."); return; }
 
-    // Build response data with column names
-    var data = {
-        action: "surveyResponse",
-        email: surveyEmail
-    };
-
-    // Map answers to column names
+    var data = { action: "surveyResponse", email: surveyEmail };
     data["Laptop Ownership"] = surveyAnswers.ownership || "";
 
     surveyQuestions.forEach(function(q) {
-        if (surveyAnswers[q.id]) {
-            data[q.column] = surveyAnswers[q.id];
-        }
+        if (surveyAnswers[q.id]) { data[q.column] = surveyAnswers[q.id]; }
     });
 
-    // Send to Google Sheets
     sendToGoogleSheets(data, function() {
         showScreen("thankYou");
     }, function() {
@@ -559,13 +500,8 @@ function sendToGoogleSheets(data, onSuccess, onError) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
     })
-    .then(function() {
-        if (onSuccess) onSuccess();
-    })
-    .catch(function(error) {
-        console.error("Google Sheets error:", error);
-        if (onError) onError(error);
-    });
+    .then(function() { if (onSuccess) onSuccess(); })
+    .catch(function(error) { console.error("Google Sheets error:", error); if (onError) onError(error); });
 }
 
 // =======================================
@@ -579,16 +515,9 @@ function isValidEmail(email) {
 function showStatus(el, type, message) {
     el.style.display = "block";
     el.className = "status-msg";
-
-    if (type === "success") {
-        el.classList.add("status-success");
-    } else if (type === "error") {
-        el.classList.add("status-error");
-    } else if (type === "warning") {
-        el.classList.add("status-warning");
-    } else {
-        el.classList.add("status-info");
-    }
-
+    if (type === "success") el.classList.add("status-success");
+    else if (type === "error") el.classList.add("status-error");
+    else if (type === "warning") el.classList.add("status-warning");
+    else el.classList.add("status-info");
     el.innerHTML = message;
 }
