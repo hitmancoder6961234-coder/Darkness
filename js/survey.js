@@ -79,8 +79,8 @@ options: [
 question: "How often do you upgrade or replace your laptop?",
 
 options: [
-"Every 1–2 Years",
-"Every 3–4 Years",
+"Every 1-2 Years",
+"Every 3-4 Years",
 "Every 5+ Years",
 "Only When Necessary"
 ]
@@ -155,10 +155,10 @@ options: [
 question: "What is your expected budget?",
 
 options: [
-"Below ₹30,000",
-"₹30,000–₹50,000",
-"₹50,000–₹80,000",
-"Above ₹80,000"
+"Below 30,000",
+"30,000 - 50,000",
+"50,000 - 80,000",
+"Above 80,000"
 ]
 },
 
@@ -178,8 +178,8 @@ options: [
 question: "Which screen size do you prefer?",
 
 options: [
-"13–14 Inch",
-"15–16 Inch",
+"13-14 Inch",
+"15-16 Inch",
 "17 Inch or Larger"
 ]
 },
@@ -202,8 +202,8 @@ options: [
 question: "How long do you expect your laptop to last?",
 
 options: [
-"1–2 Years",
-"3–5 Years",
+"1-2 Years",
+"3-5 Years",
 "More Than 5 Years"
 ]
 },
@@ -232,6 +232,7 @@ options: [
 }
 
 ];
+
 // =======================================
 // Part 2
 // Survey Variables
@@ -242,6 +243,8 @@ let currentQuestion = 0;
 let surveyQuestions = [];
 
 let answers = [];
+
+let questionBranchLoaded = false;
 
 const questionElement = document.getElementById("question");
 
@@ -257,8 +260,6 @@ const nextButton = document.getElementById("nextBtn");
 
 const submitButton = document.getElementById("submitBtn");
 
-
-
 // =======================================
 // Start Survey
 // =======================================
@@ -267,15 +268,12 @@ surveyQuestions.push(firstQuestion);
 
 loadQuestion();
 
-
-
 // =======================================
 // Load Question
 // =======================================
 
 function loadQuestion()
 {
-
     questionElement.textContent =
     surveyQuestions[currentQuestion].question;
 
@@ -283,7 +281,6 @@ function loadQuestion()
 
     surveyQuestions[currentQuestion].options.forEach(function(option)
     {
-
         const label = document.createElement("label");
 
         label.className = "option";
@@ -300,6 +297,12 @@ function loadQuestion()
 
         `;
 
+        // Restore previously selected answer
+        if (answers[currentQuestion] === option)
+        {
+            label.querySelector("input").checked = true;
+        }
+
         optionsElement.appendChild(label);
 
     });
@@ -310,7 +313,41 @@ function loadQuestion()
 
 }
 
+// =======================================
+// Get Selected Answer
+// =======================================
 
+function getSelectedAnswer()
+{
+    const selected = document.querySelector('input[name="answer"]:checked');
+    return selected ? selected.value : null;
+}
+
+// =======================================
+// Dynamic Question Branching
+// =======================================
+
+function loadQuestionBranch(answer)
+{
+    if (questionBranchLoaded) return;
+
+    questionBranchLoaded = true;
+
+    if (answer === "Yes")
+    {
+        ownerQuestions.forEach(function(q)
+        {
+            surveyQuestions.push(q);
+        });
+    }
+    else if (answer === "No")
+    {
+        buyerQuestions.forEach(function(q)
+        {
+            surveyQuestions.push(q);
+        });
+    }
+}
 
 // =======================================
 // Progress Bar
@@ -318,7 +355,6 @@ function loadQuestion()
 
 function updateProgress()
 {
-
     const totalQuestions = surveyQuestions.length;
 
     progressText.textContent =
@@ -329,21 +365,17 @@ function updateProgress()
 
 }
 
-
-
 // =======================================
 // Buttons
 // =======================================
 
 function updateButtons()
 {
-
     previousButton.style.display =
     currentQuestion === 0 ? "none" : "inline-block";
 
     if(currentQuestion === surveyQuestions.length - 1)
     {
-
         nextButton.style.display = "none";
 
         submitButton.style.display = "inline-block";
@@ -352,7 +384,6 @@ function updateButtons()
 
     else
     {
-
         nextButton.style.display = "inline-block";
 
         submitButton.style.display = "none";
@@ -360,3 +391,99 @@ function updateButtons()
     }
 
 }
+
+// =======================================
+// Next Button Handler
+// =======================================
+
+nextButton.addEventListener("click", function()
+{
+    const selected = getSelectedAnswer();
+
+    if (!selected)
+    {
+        alert("Please select an answer before proceeding.");
+        return;
+    }
+
+    // Save answer
+    answers[currentQuestion] = selected;
+
+    // If on the first question, load branch questions
+    if (currentQuestion === 0)
+    {
+        loadQuestionBranch(selected);
+    }
+
+    currentQuestion++;
+
+    loadQuestion();
+});
+
+// =======================================
+// Previous Button Handler
+// =======================================
+
+previousButton.addEventListener("click", function()
+{
+    if (currentQuestion > 0)
+    {
+        // Save current answer before going back
+        const selected = getSelectedAnswer();
+        if (selected)
+        {
+            answers[currentQuestion] = selected;
+        }
+
+        currentQuestion--;
+        loadQuestion();
+    }
+});
+
+// =======================================
+// Submit Button Handler
+// =======================================
+
+submitButton.addEventListener("click", function()
+{
+    const selected = getSelectedAnswer();
+
+    if (!selected)
+    {
+        alert("Please select an answer before submitting.");
+        return;
+    }
+
+    // Save last answer
+    answers[currentQuestion] = selected;
+
+    // Build response data
+    const responseData = {};
+
+    surveyQuestions.forEach(function(q, index)
+    {
+        responseData["Q" + (index + 1) + ": " + q.question] = answers[index] || "Not Answered";
+    });
+
+    console.log("Survey Submitted");
+    console.table(responseData);
+
+    // Store locally
+    localStorage.setItem("surveyData", JSON.stringify(responseData));
+
+    // Show thank you message
+    const surveyCard = document.querySelector(".survey-card");
+
+    surveyCard.innerHTML = `
+        <h1 style="text-align:center; margin-bottom:15px;">Thank You!</h1>
+        <p style="text-align:center; color:#cbd5e1; margin-bottom:25px;">
+            Your survey responses have been recorded successfully.
+            We appreciate your participation in the Laptop Market Research.
+        </p>
+        <div style="text-align:center;">
+            <a href="index.html" style="display:inline-block; padding:14px 28px; background:#2563eb; color:#fff; border-radius:10px; text-decoration:none; font-weight:600;">
+                Back to Home
+            </a>
+        </div>
+    `;
+});
