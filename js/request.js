@@ -3,7 +3,7 @@
 // Request Access Script
 // ================================
 
-const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwah2dCJMy2ceN8KATayNZSPj1Re9SU_NnVnvHooBZZvplMIzBr6DOfZJsmnE1P8Lz8fg/exec";
+const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbx-kggNIXc9XqSjtXkLOaY5-WbMNlmnA_6HnzFoCjqsS58pZdHqs-_n2GiUUmTVuLas1g/exec";
 
 const form = document.getElementById("requestForm");
 const successMessage = document.getElementById("successMessage");
