@@ -2,27 +2,17 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Admin Dashboard | Laptop Market Research</title>
-
     <link rel="stylesheet" href="css/dashboard.css">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
-
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-
 </head>
 
 <body>
-
     <div class="dashboard-container">
 
         <!-- Header -->
@@ -55,7 +45,7 @@
             <p>Loading data from Google Sheets...</p>
         </div>
 
-        <!-- Stats Cards -->
+        <!-- ===================== STATS CARDS ===================== -->
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
                 <div class="stat-icon icon-blue">&#9993;</div>
@@ -68,21 +58,21 @@
                 <div class="stat-icon icon-green">&#10003;</div>
                 <div class="stat-info">
                     <div class="stat-number" id="approvedUsers">0</div>
-                    <div class="stat-label">Approved Users</div>
+                    <div class="stat-label">Approved</div>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon icon-yellow">&#9203;</div>
                 <div class="stat-info">
                     <div class="stat-number" id="pendingRequests">0</div>
-                    <div class="stat-label">Pending Requests</div>
+                    <div class="stat-label">Pending</div>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon icon-red">&#10007;</div>
                 <div class="stat-info">
                     <div class="stat-number" id="rejectedRequests">0</div>
-                    <div class="stat-label">Rejected Requests</div>
+                    <div class="stat-label">Rejected</div>
                 </div>
             </div>
             <div class="stat-card">
@@ -108,158 +98,243 @@
             </div>
         </div>
 
-        <!-- Charts Section -->
-        <div class="section-title">Survey Analytics</div>
-        <div class="charts-grid" id="chartsGrid">
+        <!-- ===================== PROGRESS BARS ===================== -->
+        <div class="section-title">Request Status Overview</div>
+        <div class="progress-section" id="progressSection">
+            <div class="progress-bar-item">
+                <div class="progress-label">
+                    <span>Approved</span>
+                    <span id="approvedPercent">0%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill green" id="approvedBar" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="progress-bar-item">
+                <div class="progress-label">
+                    <span>Pending</span>
+                    <span id="pendingPercent">0%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill yellow" id="pendingBar" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="progress-bar-item">
+                <div class="progress-label">
+                    <span>Rejected</span>
+                    <span id="rejectedPercent">0%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill red" id="rejectedBar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
 
-            <!-- 1. Laptop Ownership -->
+        <!-- ===================== REQUEST STATUS CHARTS ===================== -->
+        <div class="section-title">Request Analytics</div>
+        <div class="charts-grid" id="requestChartsGrid">
             <div class="chart-card">
-                <h2>Laptop Ownership</h2>
+                <h2>Request Status - Pie Chart</h2>
+                <div class="chart-wrapper">
+                    <canvas id="requestPieChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2>Request Status - Doughnut Chart</h2>
+                <div class="chart-wrapper">
+                    <canvas id="requestDoughnutChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2>Request Status - Bar Chart</h2>
+                <div class="chart-wrapper">
+                    <canvas id="requestBarChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h2>Laptop Ownership Distribution</h2>
                 <div class="chart-wrapper">
                     <canvas id="ownershipChart"></canvas>
                 </div>
             </div>
+        </div>
 
-            <!-- 2. Usage Purpose -->
+        <!-- ===================== SURVEY ANALYTICS CHARTS ===================== -->
+        <div class="section-title">Survey Analytics</div>
+        <div class="charts-grid" id="chartsGrid">
+            <!-- 1. Usage Purpose -->
             <div class="chart-card">
                 <h2>Usage Purpose</h2>
                 <div class="chart-wrapper">
                     <canvas id="usageChart"></canvas>
                 </div>
             </div>
-
-            <!-- 3. Useful Features -->
+            <!-- 2. Useful Features -->
             <div class="chart-card">
                 <h2>Useful Features</h2>
                 <div class="chart-wrapper">
                     <canvas id="featuresChart"></canvas>
                 </div>
             </div>
-
-            <!-- 4. Current Laptop Problems -->
+            <!-- 3. Current Laptop Problems -->
             <div class="chart-card">
                 <h2>Current Laptop Problems</h2>
                 <div class="chart-wrapper">
                     <canvas id="problemsChart"></canvas>
                 </div>
             </div>
-
-            <!-- 5. Satisfaction Level -->
+            <!-- 4. Satisfaction Level -->
             <div class="chart-card">
                 <h2>Satisfaction Level</h2>
                 <div class="chart-wrapper">
                     <canvas id="satisfactionChart"></canvas>
                 </div>
             </div>
-
-            <!-- 6. Improvement Needed -->
+            <!-- 5. Improvement Needed -->
             <div class="chart-card">
                 <h2>Improvement Needed</h2>
                 <div class="chart-wrapper">
                     <canvas id="improvementChart"></canvas>
                 </div>
             </div>
-
-            <!-- 7. Upgrade Frequency -->
+            <!-- 6. Upgrade Frequency -->
             <div class="chart-card">
                 <h2>Upgrade Frequency</h2>
                 <div class="chart-wrapper">
                     <canvas id="upgradeChart"></canvas>
                 </div>
             </div>
-
-            <!-- 8. Preferred Brand -->
+            <!-- 7. Preferred Brand -->
             <div class="chart-card">
                 <h2>Preferred Brand</h2>
                 <div class="chart-wrapper">
                     <canvas id="brandChart"></canvas>
                 </div>
             </div>
-
-            <!-- 9. Buying Factor -->
+            <!-- 8. Buying Factor -->
             <div class="chart-card">
                 <h2>Buying Factor</h2>
                 <div class="chart-wrapper">
                     <canvas id="buyingFactorChart"></canvas>
                 </div>
             </div>
-
-            <!-- 10. Recommended Laptop -->
+            <!-- 9. Recommended Laptop -->
             <div class="chart-card">
                 <h2>Recommended Laptop</h2>
                 <div class="chart-wrapper">
                     <canvas id="recommendedChart"></canvas>
                 </div>
             </div>
-
-            <!-- 11. Expected Laptop Life -->
+            <!-- 10. Expected Laptop Life -->
             <div class="chart-card">
                 <h2>Expected Laptop Life</h2>
                 <div class="chart-wrapper">
                     <canvas id="expectedLifeChart"></canvas>
                 </div>
             </div>
-
-            <!-- 12. Budget -->
+            <!-- 11. Budget -->
             <div class="chart-card">
                 <h2>Budget</h2>
                 <div class="chart-wrapper">
                     <canvas id="budgetChart"></canvas>
                 </div>
             </div>
-
-            <!-- 13. Screen Size -->
+            <!-- 12. Screen Size -->
             <div class="chart-card">
                 <h2>Screen Size</h2>
                 <div class="chart-wrapper">
                     <canvas id="screenSizeChart"></canvas>
                 </div>
             </div>
-
-            <!-- 14. Preferred Laptop -->
+            <!-- 13. Preferred Laptop Type -->
             <div class="chart-card">
-                <h2>Preferred Laptop</h2>
+                <h2>Preferred Laptop Type</h2>
                 <div class="chart-wrapper">
                     <canvas id="preferredLaptopChart"></canvas>
                 </div>
             </div>
-
-            <!-- 15. Buying Place -->
+            <!-- 14. Buying Place -->
             <div class="chart-card">
                 <h2>Buying Place</h2>
                 <div class="chart-wrapper">
                     <canvas id="buyingPlaceChart"></canvas>
                 </div>
             </div>
-
-            <!-- 16. Final Decision Factor -->
+            <!-- 15. Final Decision Factor -->
             <div class="chart-card">
                 <h2>Final Decision Factor</h2>
                 <div class="chart-wrapper">
                     <canvas id="decisionChart"></canvas>
                 </div>
             </div>
-
+            <!-- 16. Submission Timeline -->
+            <div class="chart-card">
+                <h2>Submission Timeline</h2>
+                <div class="chart-wrapper">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
         </div>
 
-        <!-- Recent Responses Table -->
-        <div class="section-title">Recent Responses</div>
+        <!-- ===================== REQUESTS TABLE ===================== -->
+        <div class="section-title">Access Requests</div>
+        <div class="table-section" id="requestTableSection">
+            <div class="table-controls">
+                <input type="text" id="requestSearchInput" class="search-input" placeholder="Search requests by name or email...">
+                <select id="requestStatusFilter" class="filter-select">
+                    <option value="all">All Status</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table" id="requestsTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-column="Request ID" data-table="requests">Request ID <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Name" data-table="requests">Name <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Email" data-table="requests">Email <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Request Date & Time" data-table="requests">Date <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Status" data-table="requests">Status <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Approved By" data-table="requests">Approved By <span class="sort-arrow">&#8597;</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="requestTableBody"></tbody>
+                </table>
+            </div>
+            <div class="pagination" id="requestPagination">
+                <button id="reqPrevBtn" class="page-btn" disabled>Previous</button>
+                <span id="reqPageInfo" class="page-info">Page 1 of 1</span>
+                <button id="reqNextBtn" class="page-btn" disabled>Next</button>
+            </div>
+        </div>
+
+        <!-- ===================== SURVEY RESPONSES TABLE ===================== -->
+        <div class="section-title">Survey Responses</div>
         <div class="table-section" id="tableSection">
             <div class="table-controls">
-                <input type="text" id="searchInput" class="search-input" placeholder="Search by name or email...">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search responses by name or email...">
+                <select id="ownershipFilter" class="filter-select">
+                    <option value="all">All Responses</option>
+                    <option value="Yes">Laptop Owners</option>
+                    <option value="No">Laptop Buyers</option>
+                </select>
             </div>
             <div class="table-wrapper">
                 <table class="data-table" id="responsesTable">
                     <thead>
                         <tr>
-                            <th class="sortable" data-column="Name">Name <span class="sort-arrow">&#8597;</span></th>
-                            <th class="sortable" data-column="Email">Email <span class="sort-arrow">&#8597;</span></th>
-                            <th class="sortable" data-column="Laptop Ownership">Laptop Ownership <span class="sort-arrow">&#8597;</span></th>
-                            <th class="sortable" data-column="Timestamp">Submission Date <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Name" data-table="responses">Name <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Email" data-table="responses">Email <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Laptop Ownership" data-table="responses">Ownership <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Usage Purpose" data-table="responses">Usage <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Preferred Brand" data-table="responses">Brand <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Timestamp" data-table="responses">Date <span class="sort-arrow">&#8597;</span></th>
+                            <th class="sortable" data-column="Completion Time" data-table="responses">Time <span class="sort-arrow">&#8597;</span></th>
                         </tr>
                     </thead>
-                    <tbody id="tableBody">
-                    </tbody>
+                    <tbody id="tableBody"></tbody>
                 </table>
             </div>
             <div class="pagination" id="pagination">
@@ -279,8 +354,7 @@
 
     </div>
 
-    <script src="js/dashboard.js"></script>
-
+    <script src="js/dashboard.js?v=3"></script>
 </body>
 
 </html>
