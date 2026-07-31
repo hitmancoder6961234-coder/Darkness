@@ -3,7 +3,7 @@
 // Unified Sign-In Flow + Survey
 // ===============================
 
-const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxaSHCsuBMp1XiUL0Gnu2iZo4Ab6ITHTLRUNTFaEW94fQ__A9CdfXsOqztCAd6eMabADA/exec";
+const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxNezU-FZQzKrBSEB8dj0MC8-30a1E7_gw7cK68hHWXrZHofW9gwVglDwlW4e5vkpEw6Q/exec";
 
 // =======================================
 // Screen Navigation
@@ -27,6 +27,12 @@ function showSignInChoice() {
 
 function showSignInNew() {
     showScreen("signInNew");
+    // Clear form fields every time
+    document.getElementById("newCPRN").value = "";
+    document.getElementById("newName").value = "";
+    document.getElementById("newEmail").value = "";
+    document.getElementById("newMobile").value = "";
+    document.getElementById("newPurpose").value = "";
     document.getElementById("newRequestMsg").style.display = "none";
 }
 
@@ -41,12 +47,14 @@ function showSignInAlready() {
 // =======================================
 
 function submitNewRequest() {
+    var cprn = document.getElementById("newCPRN").value.trim();
     var name = document.getElementById("newName").value.trim();
     var email = document.getElementById("newEmail").value.trim();
     var mobile = document.getElementById("newMobile").value.trim();
     var purpose = document.getElementById("newPurpose").value.trim();
     var msgEl = document.getElementById("newRequestMsg");
 
+    if (!cprn) { showStatus(msgEl, "error", "Please enter your CPRN Number."); return; }
     if (!name) { showStatus(msgEl, "error", "Please enter your name."); return; }
     if (!email || !isValidEmail(email)) { showStatus(msgEl, "error", "Please enter a valid email address."); return; }
     if (!mobile) { showStatus(msgEl, "error", "Please enter your mobile number."); return; }
@@ -55,6 +63,7 @@ function submitNewRequest() {
 
     var data = {
         action: "accessRequest",
+        cprn: cprn,
         name: name,
         email: email,
         mobile: mobile,
@@ -62,6 +71,13 @@ function submitNewRequest() {
     };
 
     sendToGoogleSheets(data, function() {
+        // Clear form fields after successful submission
+        document.getElementById("newCPRN").value = "";
+        document.getElementById("newName").value = "";
+        document.getElementById("newEmail").value = "";
+        document.getElementById("newMobile").value = "";
+        document.getElementById("newPurpose").value = "";
+
         showStatus(msgEl, "info", "Request submitted! Checking your status...");
         setTimeout(function() {
             showSignInAlready();
@@ -142,15 +158,10 @@ function checkAccessFromSheet(email, onSuccess, onError) {
 
 // =======================================
 // Auto-Check from URL Parameter
+// No localStorage storage - form data is NOT persisted
 // =======================================
 
 (function autoCheckFromURL() {
-    localStorage.removeItem("approvedEmail");
-    localStorage.removeItem("pendingEmail");
-    localStorage.removeItem("pendingName");
-    localStorage.removeItem("pendingMobile");
-    localStorage.removeItem("approvedName");
-
     var params = new URLSearchParams(window.location.search);
     var emailParam = params.get("email");
 
@@ -186,6 +197,7 @@ var surveyStep = 0;
 var surveyAnswers = {};
 var surveyEmail = "";
 var surveyQuestions = []; // Will hold the 10 branch questions
+var surveyStartTime = null; // Track when survey started
 
 var ALL_QUESTIONS = [
     // Q1 - Common
@@ -344,6 +356,7 @@ function startSurvey(email) {
     surveyAnswers = {};
     surveyStep = 0;
     surveyQuestions = [];
+    surveyStartTime = Date.now(); // Start timing
 
     showScreen("surveyArea");
     renderOwnershipQuestion();
@@ -471,13 +484,41 @@ function prevQuestion() {
 // Submit Survey
 // =======================================
 
+function getFinalRecommendation() {
+    var ownership = surveyAnswers.ownership;
+    if (ownership === "Yes") {
+        var satisfaction = surveyAnswers.satisfaction || "";
+        if (satisfaction === "Very Satisfied" || satisfaction === "Satisfied") {
+            return "Keep current laptop, consider minor upgrades";
+        } else if (satisfaction === "Neutral") {
+            return "Consider upgrading within 1-2 years";
+        } else {
+            return "Recommended to upgrade soon";
+        }
+    } else {
+        var budget = surveyAnswers.budget || "";
+        if (budget === "Below 30,000" || budget === "Below \u20B930,000") {
+            return "Budget-friendly laptop recommended";
+        } else if (budget === "30,000-50,000" || budget === "\u20B930,000-\u20B950,000") {
+            return "Mid-range laptop recommended";
+        } else {
+            return "Premium laptop recommended";
+        }
+    }
+}
+
 function handleSubmit() {
     var qIndex = surveyStep - 1;
     var q = surveyQuestions[qIndex];
     if (!surveyAnswers[q.id]) { alert("Please select an option before submitting."); return; }
 
+    // Calculate completion time in seconds
+    var completionTime = surveyStartTime ? Math.round((Date.now() - surveyStartTime) / 1000) : 0;
+
     var data = { action: "surveyResponse", email: surveyEmail };
     data["Laptop Ownership"] = surveyAnswers.ownership || "";
+    data["Completion Time"] = completionTime;
+    data["Final Recommendation"] = getFinalRecommendation();
 
     surveyQuestions.forEach(function(q) {
         if (surveyAnswers[q.id]) { data[q.column] = surveyAnswers[q.id]; }
@@ -492,17 +533,39 @@ function handleSubmit() {
 
 // =======================================
 // Google Sheets Communication
+// FIXED: Uses URL-encoded form data + mode: "no-cors"
+// This is the ONLY reliable method for Google Apps Script Web Apps:
+// - application/x-www-form-urlencoded is a "simple request" (no CORS preflight)
+// - mode: "no-cors" handles the Apps Script redirect (response is opaque but data IS sent)
+// - Google Apps Script parses URL-encoded data into e.parameter automatically
+// - multipart/form-data (FormData) does NOT work because Apps Script doesn't parse it
+// - application/json triggers a CORS preflight OPTIONS request that Apps Script can't handle
 // =======================================
 
 function sendToGoogleSheets(data, onSuccess, onError) {
+    // Convert data object to URL-encoded string
+    var params = new URLSearchParams();
+    var keys = Object.keys(data);
+    for (var i = 0; i < keys.length; i++) {
+        params.append(keys[i], data[keys[i]]);
+    }
+
     fetch(GOOGLE_SHEETS_URL, {
         method: "POST",
         mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString()
     })
-    .then(function() { if (onSuccess) onSuccess(); })
-    .catch(function(error) { console.error("Google Sheets error:", error); if (onError) onError(error); });
+    .then(function() {
+        // With no-cors, response is opaque - we can't read it
+        // But the data IS sent to the server
+        console.log("Data sent to Google Sheets successfully.");
+        if (onSuccess) onSuccess();
+    })
+    .catch(function(error) {
+        console.error("Google Sheets error:", error);
+        if (onError) onError(error);
+    });
 }
 
 // =======================================

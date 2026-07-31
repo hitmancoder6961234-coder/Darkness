@@ -1,9 +1,11 @@
 // ================================
 // Laptop Market Research
-// Request Access Script
+// Request Access Script (Legacy)
 // ================================
+// NOTE: The main form is now in survey.js (unified sign-in flow)
+// This file is kept for backward compatibility only
 
-const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxaSHCsuBMp1XiUL0Gnu2iZo4Ab6ITHTLRUNTFaEW94fQ__A9CdfXsOqztCAd6eMabADA/exec";
+const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxNezU-FZQzKrBSEB8dj0MC8-30a1E7_gw7cK68hHWXrZHofW9gwVglDwlW4e5vkpEw6Q/exec";
 
 // =======================================
 // Navigation Functions
@@ -24,12 +26,6 @@ function showNewSignIn() {
 function showReturningSignIn() {
     document.getElementById("step1").style.display = "none";
     document.getElementById("step2Return").style.display = "block";
-
-    // Pre-fill email if saved from earlier
-    var savedEmail = localStorage.getItem("pendingEmail") || "";
-    if (savedEmail) {
-        document.getElementById("returnEmail").value = savedEmail;
-    }
 }
 
 // Make functions globally accessible
@@ -43,36 +39,40 @@ window.showReturningSignIn = showReturningSignIn;
 
 var newUserForm = document.getElementById("newUserForm");
 
-newUserForm.addEventListener("submit", function(event) {
-    event.preventDefault();
+if (newUserForm) {
+    newUserForm.addEventListener("submit", function(event) {
+        event.preventDefault();
 
-    var userData = {
-        action: "accessRequest",
-        name: document.getElementById("newName").value.trim(),
-        email: document.getElementById("newEmail").value.trim(),
-        phone: document.getElementById("newPhone").value.trim(),
-        purpose: document.getElementById("newPurpose").value.trim()
-    };
+        var userData = {
+            action: "accessRequest",
+            name: document.getElementById("newName").value.trim(),
+            email: document.getElementById("newEmail").value.trim(),
+            phone: document.getElementById("newPhone").value.trim(),
+            purpose: document.getElementById("newPurpose").value.trim()
+        };
 
-    if (!userData.name || !userData.email || !userData.phone) {
-        alert("Please fill in all required fields.");
-        return;
-    }
+        if (!userData.name || !userData.email || !userData.phone) {
+            alert("Please fill in all required fields.");
+            return;
+        }
 
-    console.log("New Request Submitted");
-    console.table(userData);
+        console.log("New Request Submitted");
+        console.table(userData);
 
-    // Send to Google Sheets
-    sendRequestToGoogleSheets(userData);
+        // Send to Google Sheets
+        sendRequestToGoogleSheets(userData, function() {
+            // Clear form fields after successful submission
+            document.getElementById("newName").value = "";
+            document.getElementById("newEmail").value = "";
+            document.getElementById("newPhone").value = "";
+            document.getElementById("newPurpose").value = "";
 
-    // Save email for survey page
-    localStorage.setItem("pendingEmail", userData.email);
-    localStorage.setItem("pendingName", userData.name);
-
-    // Show success message
-    document.getElementById("step2New").style.display = "none";
-    document.getElementById("successMessage").style.display = "block";
-});
+            // Show success message
+            document.getElementById("step2New").style.display = "none";
+            document.getElementById("successMessage").style.display = "block";
+        });
+    });
+}
 
 // =======================================
 // Returning User - Check Status
@@ -99,25 +99,19 @@ function checkMyStatus() {
         .then(function(response) { return response.json(); })
         .then(function(data) {
             if (data.status === "found" && data.accessStatus === "Accepted") {
-                // Approved - save and show survey link
-                localStorage.setItem("approvedEmail", email);
-                localStorage.setItem("approvedName", data.name || "");
-                localStorage.setItem("pendingEmail", email);
-                localStorage.setItem("pendingName", data.name || "");
-
                 resultDiv.style.background = "rgba(22,163,74,0.15)";
                 resultDiv.style.border = "1px solid #16a34a";
                 resultDiv.innerHTML =
-                    '<div style="font-size:2rem; margin-bottom:10px;">✅</div>' +
+                    '<div style="font-size:2rem; margin-bottom:10px;">\u2705</div>' +
                     '<strong style="color:#16a34a; font-size:1.1rem;">Access Approved!</strong>' +
                     '<p style="color:#cbd5e1; margin-top:8px;">Welcome back, ' + (data.name || "User") + '!</p>' +
-                    '<a href="survey.html" style="display:inline-block; margin-top:15px; padding:14px 28px; background:#16a34a; color:#fff; border-radius:10px; text-decoration:none; font-weight:600;">Start Survey →</a>';
+                    '<a href="survey.html" style="display:inline-block; margin-top:15px; padding:14px 28px; background:#16a34a; color:#fff; border-radius:10px; text-decoration:none; font-weight:600;">Start Survey \u2192</a>';
 
             } else if (data.status === "found" && data.accessStatus === "Pending") {
                 resultDiv.style.background = "rgba(251,191,36,0.15)";
                 resultDiv.style.border = "1px solid #fbbf24";
                 resultDiv.innerHTML =
-                    '<div style="font-size:2rem; margin-bottom:10px;">⏳</div>' +
+                    '<div style="font-size:2rem; margin-bottom:10px;">\u23F3</div>' +
                     '<strong style="color:#fbbf24; font-size:1.1rem;">Request Pending</strong>' +
                     '<p style="color:#cbd5e1; margin-top:8px;">Your request is still waiting for admin approval. You\'ll receive an email once approved.</p>';
 
@@ -125,19 +119,18 @@ function checkMyStatus() {
                 resultDiv.style.background = "rgba(239,68,68,0.15)";
                 resultDiv.style.border = "1px solid #ef4444";
                 resultDiv.innerHTML =
-                    '<div style="font-size:2rem; margin-bottom:10px;">❌</div>' +
+                    '<div style="font-size:2rem; margin-bottom:10px;">\u274C</div>' +
                     '<strong style="color:#ef4444; font-size:1.1rem;">Request Rejected</strong>' +
                     '<p style="color:#cbd5e1; margin-top:8px;">Your access request has been rejected.</p>';
 
             } else {
-                // Email not found
                 resultDiv.style.background = "rgba(239,68,68,0.15)";
                 resultDiv.style.border = "1px solid #ef4444";
                 resultDiv.innerHTML =
-                    '<div style="font-size:2rem; margin-bottom:10px;">🚫</div>' +
+                    '<div style="font-size:2rem; margin-bottom:10px;">\uD83D\uDEAB</div>' +
                     '<strong style="color:#ef4444; font-size:1.1rem;">Email Not Found</strong>' +
                     '<p style="color:#cbd5e1; margin-top:8px;">No request found with this email. Please sign in as a new user first.</p>' +
-                    '<a href="#" onclick="showNewSignIn(); return false;" style="display:inline-block; margin-top:15px; color:#60a5fa; text-decoration:underline;">Sign In as New User →</a>';
+                    '<a href="#" onclick="showNewSignIn(); return false;" style="display:inline-block; margin-top:15px; color:#60a5fa; text-decoration:underline;">Sign In as New User \u2192</a>';
             }
         })
         .catch(function(error) {
@@ -152,17 +145,26 @@ window.checkMyStatus = checkMyStatus;
 
 // =======================================
 // Google Sheets Integration
+// FIXED: Uses URL-encoded form data + mode: "no-cors"
+// This is the ONLY reliable method for Google Apps Script Web Apps
 // =======================================
 
-function sendRequestToGoogleSheets(data) {
+function sendRequestToGoogleSheets(data, onSuccess) {
+    var params = new URLSearchParams();
+    var keys = Object.keys(data);
+    for (var i = 0; i < keys.length; i++) {
+        params.append(keys[i], data[keys[i]]);
+    }
+
     fetch(GOOGLE_SHEETS_URL, {
         method: "POST",
         mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString()
     })
     .then(function() {
         console.log("Access request sent to Google Sheets.");
+        if (onSuccess) onSuccess();
     })
     .catch(function(error) {
         console.error("Error sending request:", error);

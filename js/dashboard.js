@@ -1,9 +1,10 @@
 // ===============================
 // Laptop Market Research
 // Dashboard Analytics - Full JS
+// Professional Live Analytics Dashboard
 // ===============================
 
-var GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxaSHCsuBMp1XiUL0Gnu2iZo4Ab6ITHTLRUNTFaEW94fQ__A9CdfXsOqztCAd6eMabADA/exec";
+var GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxNezU-FZQzKrBSEB8dj0MC8-30a1E7_gw7cK68hHWXrZHofW9gwVglDwlW4e5vkpEw6Q/exec";
 
 // Chart.js global defaults - dark theme
 Chart.defaults.color = "#cbd5e1";
@@ -20,16 +21,43 @@ var COLORS = [
     "#ec4899", "#f472b6"
 ];
 
+// Chart type assignment for each question
+var CHART_TYPES = {
+    "Laptop Ownership": "doughnut",
+    "Usage Purpose": "bar",
+    "Useful Features": "polarArea",
+    "Current Laptop Problems": "horizontalBar",
+    "Satisfaction Level": "doughnut",
+    "Improvement Needed": "bar",
+    "Upgrade Frequency": "bar",
+    "Preferred Brand": "horizontalBar",
+    "Buying Factor": "doughnut",
+    "Recommended Laptop": "pie",
+    "Expected Laptop Life": "bar",
+    "Budget": "bar",
+    "Screen Size": "doughnut",
+    "Preferred Laptop": "pie",
+    "Buying Place": "doughnut",
+    "Final Decision Factor": "bar"
+};
+
 // Chart instances tracking
 var chartInstances = {};
 
 // Table state
-var tableData = [];
-var filteredData = [];
-var currentPage = 1;
-var rowsPerPage = 10;
-var sortColumn = "";
-var sortDirection = "asc";
+var surveyTableData = [];
+var surveyFilteredData = [];
+var surveyCurrentPage = 1;
+var surveyRowsPerPage = 10;
+var surveySortColumn = "";
+var surveySortDirection = "asc";
+
+var requestTableData = [];
+var requestFilteredData = [];
+var requestCurrentPage = 1;
+var requestRowsPerPage = 10;
+var requestSortColumn = "";
+var requestSortDirection = "asc";
 
 // Auto-refresh
 var autoRefreshInterval = null;
@@ -38,13 +66,26 @@ var autoRefreshInterval = null;
 // Data Functions
 // =======================================
 
+function fetchDashboardData() {
+    return fetch(GOOGLE_SHEETS_URL + "?action=getDashboardData")
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (data && typeof data === "object") {
+                return data;
+            }
+            return { stats: {}, requests: [], responses: [], questionBreakdown: {} };
+        })
+        .catch(function(error) {
+            console.error("Error fetching dashboard data:", error);
+            return { stats: {}, requests: [], responses: [], questionBreakdown: {} };
+        });
+}
+
 function fetchSurveyData() {
     return fetch(GOOGLE_SHEETS_URL + "?action=getSurveyData")
         .then(function(response) { return response.json(); })
         .then(function(data) {
-            if (Array.isArray(data)) {
-                return data;
-            }
+            if (Array.isArray(data)) return data;
             return [];
         })
         .catch(function(error) {
@@ -57,9 +98,7 @@ function fetchRequestData() {
     return fetch(GOOGLE_SHEETS_URL + "?action=getRequestData")
         .then(function(response) { return response.json(); })
         .then(function(data) {
-            if (Array.isArray(data)) {
-                return data;
-            }
+            if (Array.isArray(data)) return data;
             return [];
         })
         .catch(function(error) {
@@ -72,9 +111,7 @@ function fetchDashboardStats() {
     return fetch(GOOGLE_SHEETS_URL + "?action=getDashboardStats")
         .then(function(response) { return response.json(); })
         .then(function(data) {
-            if (data && typeof data === "object") {
-                return data;
-            }
+            if (data && typeof data === "object") return data;
             return {};
         })
         .catch(function(error) {
@@ -117,7 +154,6 @@ function createChart(canvasId, config) {
     var canvas = document.getElementById(canvasId);
     if (!canvas) return null;
 
-    // Destroy existing chart for this canvas
     if (chartInstances[canvasId]) {
         chartInstances[canvasId].destroy();
         delete chartInstances[canvasId];
@@ -130,7 +166,7 @@ function createChart(canvasId, config) {
 }
 
 // =======================================
-// Tooltip with Count and Percentage
+// Tooltip Callbacks
 // =======================================
 
 function getPercentageTooltipCallback() {
@@ -194,6 +230,7 @@ function updateDashboardCards(stats) {
     var rejected = stats.rejected || 0;
     var totalResponses = stats.totalResponses || 0;
     var completionRate = stats.completionRate || 0;
+    var avgCompletionTime = stats.avgCompletionTime || 0;
 
     document.getElementById("totalRequests").textContent = totalRequests;
     document.getElementById("approvedUsers").textContent = approved;
@@ -201,7 +238,7 @@ function updateDashboardCards(stats) {
     document.getElementById("rejectedRequests").textContent = rejected;
     document.getElementById("totalResponses").textContent = totalResponses;
 
-    // Completion Rate: percentage of approved users who completed the survey
+    // Completion Rate
     if (completionRate > 0) {
         var rate = Math.round(completionRate * 100);
         if (rate > 100) rate = 100;
@@ -209,6 +246,50 @@ function updateDashboardCards(stats) {
     } else {
         document.getElementById("completionRate").textContent = "0%";
     }
+
+    // Avg Completion Time
+    if (avgCompletionTime > 0) {
+        var avgSec = Math.round(avgCompletionTime);
+        if (avgSec >= 60) {
+            var minutes = Math.floor(avgSec / 60);
+            var seconds = avgSec % 60;
+            document.getElementById("avgCompletionTime").textContent = minutes + "m " + seconds + "s";
+        } else {
+            document.getElementById("avgCompletionTime").textContent = avgSec + "s";
+        }
+    } else {
+        document.getElementById("avgCompletionTime").textContent = "--";
+    }
+
+    // Update progress bars
+    updateProgressBars(totalRequests, approved, pending, rejected);
+}
+
+// =======================================
+// Update Progress Bars
+// =======================================
+
+function updateProgressBars(total, approved, pending, rejected) {
+    if (total === 0) {
+        document.getElementById("approvedBar").style.width = "0%";
+        document.getElementById("pendingBar").style.width = "0%";
+        document.getElementById("rejectedBar").style.width = "0%";
+        document.getElementById("approvedPercent").textContent = "0%";
+        document.getElementById("pendingPercent").textContent = "0%";
+        document.getElementById("rejectedPercent").textContent = "0%";
+        return;
+    }
+
+    var ap = Math.round((approved / total) * 100);
+    var pp = Math.round((pending / total) * 100);
+    var rp = Math.round((rejected / total) * 100);
+
+    document.getElementById("approvedBar").style.width = ap + "%";
+    document.getElementById("pendingBar").style.width = pp + "%";
+    document.getElementById("rejectedBar").style.width = rp + "%";
+    document.getElementById("approvedPercent").textContent = ap + "%";
+    document.getElementById("pendingPercent").textContent = pp + "%";
+    document.getElementById("rejectedPercent").textContent = rp + "%";
 }
 
 // =======================================
@@ -246,33 +327,20 @@ function renderDoughnutChart(canvasId, responses, column, customColors) {
     var counts = countOption(responses, column);
     var labels = Object.keys(counts);
     var data = Object.values(counts);
-
     if (labels.length === 0) return;
-
     var colors = customColors || COLORS.slice(0, labels.length);
 
     createChart(canvasId, {
         type: "doughnut",
         data: {
             labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: colors,
-                borderWidth: 0,
-                hoverOffset: 8
-            }]
+            datasets: [{ data: data, backgroundColor: colors, borderWidth: 0, hoverOffset: 8 }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: "bottom",
-                    labels: { padding: 14, usePointStyle: true, font: { size: 11 } }
-                },
-                tooltip: {
-                    callbacks: getPercentageTooltipCallback()
-                }
+                legend: { position: "bottom", labels: { padding: 14, usePointStyle: true, font: { size: 11 } } },
+                tooltip: { callbacks: getPercentageTooltipCallback() }
             }
         }
     });
@@ -282,33 +350,20 @@ function renderPieChart(canvasId, responses, column, customColors) {
     var counts = countOption(responses, column);
     var labels = Object.keys(counts);
     var data = Object.values(counts);
-
     if (labels.length === 0) return;
-
     var colors = customColors || COLORS.slice(0, labels.length);
 
     createChart(canvasId, {
         type: "pie",
         data: {
             labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: colors,
-                borderWidth: 0,
-                hoverOffset: 8
-            }]
+            datasets: [{ data: data, backgroundColor: colors, borderWidth: 0, hoverOffset: 8 }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: "bottom",
-                    labels: { padding: 14, usePointStyle: true, font: { size: 11 } }
-                },
-                tooltip: {
-                    callbacks: getPercentageTooltipCallback()
-                }
+                legend: { position: "bottom", labels: { padding: 14, usePointStyle: true, font: { size: 11 } } },
+                tooltip: { callbacks: getPercentageTooltipCallback() }
             }
         }
     });
@@ -318,42 +373,24 @@ function renderBarChart(canvasId, responses, column, customColors) {
     var counts = countOption(responses, column);
     var labels = Object.keys(counts);
     var data = Object.values(counts);
-
     if (labels.length === 0) return;
-
     var colors = customColors || COLORS.slice(0, labels.length);
 
     createChart(canvasId, {
         type: "bar",
         data: {
             labels: labels,
-            datasets: [{
-                label: "Responses",
-                data: data,
-                backgroundColor: colors,
-                borderRadius: 8,
-                borderWidth: 0
-            }]
+            datasets: [{ label: "Responses", data: data, backgroundColor: colors, borderRadius: 8, borderWidth: 0 }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
-                tooltip: {
-                    callbacks: getBarPercentageTooltipCallback()
-                }
+                tooltip: { callbacks: getBarPercentageTooltipCallback() }
             },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1, font: { size: 11 } },
-                    grid: { color: "rgba(255,255,255,0.06)" }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 0 }
-                }
+                y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: "rgba(255,255,255,0.06)" } },
+                x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 0 } }
             }
         }
     });
@@ -363,43 +400,24 @@ function renderHorizontalBarChart(canvasId, responses, column, customColors) {
     var counts = countOption(responses, column);
     var labels = Object.keys(counts);
     var data = Object.values(counts);
-
     if (labels.length === 0) return;
-
     var colors = customColors || COLORS.slice(0, labels.length);
 
     createChart(canvasId, {
         type: "bar",
         data: {
             labels: labels,
-            datasets: [{
-                label: "Responses",
-                data: data,
-                backgroundColor: colors,
-                borderRadius: 8,
-                borderWidth: 0
-            }]
+            datasets: [{ label: "Responses", data: data, backgroundColor: colors, borderRadius: 8, borderWidth: 0 }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            indexAxis: "y",
+            responsive: true, maintainAspectRatio: false, indexAxis: "y",
             plugins: {
                 legend: { display: false },
-                tooltip: {
-                    callbacks: getHorizontalBarPercentageTooltipCallback()
-                }
+                tooltip: { callbacks: getHorizontalBarPercentageTooltipCallback() }
             },
             scales: {
-                x: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1, font: { size: 11 } },
-                    grid: { color: "rgba(255,255,255,0.06)" }
-                },
-                y: {
-                    grid: { display: false },
-                    ticks: { font: { size: 11 } }
-                }
+                x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: "rgba(255,255,255,0.06)" } },
+                y: { grid: { display: false }, ticks: { font: { size: 11 } } }
             }
         }
     });
@@ -409,7 +427,6 @@ function renderPolarAreaChart(canvasId, responses, column) {
     var counts = countOption(responses, column);
     var labels = Object.keys(counts);
     var data = Object.values(counts);
-
     if (labels.length === 0) return;
 
     var bgColors = [];
@@ -421,36 +438,150 @@ function renderPolarAreaChart(canvasId, responses, column) {
         type: "polarArea",
         data: {
             labels: labels,
+            datasets: [{ data: data, backgroundColor: bgColors, borderWidth: 0 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: "bottom", labels: { padding: 12, usePointStyle: true, font: { size: 11 } } },
+                tooltip: { callbacks: getPercentageTooltipCallback() }
+            },
+            scales: { r: { grid: { color: "rgba(255,255,255,0.08)" }, ticks: { display: false } } }
+        }
+    });
+}
+
+function renderLineChart(canvasId, labels, data, label) {
+    if (labels.length === 0) return;
+
+    createChart(canvasId, {
+        type: "line",
+        data: {
+            labels: labels,
             datasets: [{
+                label: label || "Count",
                 data: data,
-                backgroundColor: bgColors,
-                borderWidth: 0
+                borderColor: "#4ea3ff",
+                backgroundColor: "rgba(78, 163, 255, 0.1)",
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: "#4ea3ff",
+                pointBorderColor: "#ffffff",
+                pointBorderWidth: 2,
+                pointRadius: 5
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: "bottom",
-                    labels: { padding: 12, usePointStyle: true, font: { size: 11 } }
-                },
-                tooltip: {
-                    callbacks: getPercentageTooltipCallback()
-                }
+                legend: { display: false },
+                tooltip: { mode: "index", intersect: false }
             },
             scales: {
-                r: {
-                    grid: { color: "rgba(255,255,255,0.08)" },
-                    ticks: { display: false }
-                }
+                y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: "rgba(255,255,255,0.06)" } },
+                x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 0 } }
             }
         }
     });
 }
 
 // =======================================
-// Render All Charts
+// Render Request Status Charts
+// =======================================
+
+function renderRequestCharts(stats) {
+    var pending = stats.pending || 0;
+    var approved = stats.approved || 0;
+    var rejected = stats.rejected || 0;
+    var statusLabels = [];
+    var statusData = [];
+    var statusColors = [];
+
+    if (approved > 0) { statusLabels.push("Approved"); statusData.push(approved); statusColors.push("#16a34a"); }
+    if (pending > 0) { statusLabels.push("Pending"); statusData.push(pending); statusColors.push("#f59e0b"); }
+    if (rejected > 0) { statusLabels.push("Rejected"); statusData.push(rejected); statusColors.push("#ef4444"); }
+
+    if (statusLabels.length === 0) {
+        statusLabels = ["No Data"];
+        statusData = [1];
+        statusColors = ["#64748b"];
+    }
+
+    // Pie Chart
+    createChart("requestPieChart", {
+        type: "pie",
+        data: {
+            labels: statusLabels,
+            datasets: [{ data: statusData, backgroundColor: statusColors, borderWidth: 0, hoverOffset: 8 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: "bottom", labels: { padding: 14, usePointStyle: true, font: { size: 11 } } },
+                tooltip: { callbacks: getPercentageTooltipCallback() }
+            }
+        }
+    });
+
+    // Doughnut Chart
+    createChart("requestDoughnutChart", {
+        type: "doughnut",
+        data: {
+            labels: statusLabels,
+            datasets: [{ data: statusData, backgroundColor: statusColors, borderWidth: 0, hoverOffset: 8 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: "bottom", labels: { padding: 14, usePointStyle: true, font: { size: 11 } } },
+                tooltip: { callbacks: getPercentageTooltipCallback() }
+            }
+        }
+    });
+
+    // Bar Chart
+    createChart("requestBarChart", {
+        type: "bar",
+        data: {
+            labels: statusLabels,
+            datasets: [{ label: "Requests", data: statusData, backgroundColor: statusColors, borderRadius: 8, borderWidth: 0 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: getBarPercentageTooltipCallback() }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: "rgba(255,255,255,0.06)" } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // Ownership Doughnut
+    var ownerCount = stats.ownerCount || 0;
+    var buyerCount = stats.buyerCount || 0;
+    if (ownerCount > 0 || buyerCount > 0) {
+        createChart("ownershipChart", {
+            type: "doughnut",
+            data: {
+                labels: ["Laptop Owners", "Laptop Buyers"],
+                datasets: [{ data: [ownerCount, buyerCount], backgroundColor: ["#3b82f6", "#16a34a"], borderWidth: 0, hoverOffset: 8 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: "bottom", labels: { padding: 14, usePointStyle: true, font: { size: 11 } } },
+                    tooltip: { callbacks: getPercentageTooltipCallback() }
+                }
+            }
+        });
+    }
+}
+
+// =======================================
+// Render All Survey Charts
 // =======================================
 
 function renderAllCharts(responses) {
@@ -466,7 +597,7 @@ function renderAllCharts(responses) {
     // 4. Current Laptop Problems - Horizontal Bar
     renderHorizontalBarChart("problemsChart", responses, "Current Laptop Problems", ["#ef4444", "#f59e0b", "#fbbf24", "#60a5fa", "#16a34a", "#8b5cf6", "#ec4899", "#4ea3ff"]);
 
-    // 5. Satisfaction Level - Doughnut
+    // 5. Satisfaction Level - Doughnut (special ordering)
     renderSatisfactionChart(responses);
 
     // 6. Improvement Needed - Bar
@@ -501,6 +632,9 @@ function renderAllCharts(responses) {
 
     // 16. Final Decision Factor - Bar
     renderBarChart("decisionChart", responses, "Final Decision Factor");
+
+    // 17. Submission Timeline - Line Chart
+    renderTimelineChart(responses);
 }
 
 // =======================================
@@ -529,100 +663,306 @@ function renderSatisfactionChart(responses) {
         type: "doughnut",
         data: {
             labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: usedColors,
-                borderWidth: 0,
-                hoverOffset: 8
-            }]
+            datasets: [{ data: data, backgroundColor: usedColors, borderWidth: 0, hoverOffset: 8 }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: "bottom",
-                    labels: { padding: 14, usePointStyle: true, font: { size: 11 } }
-                },
-                tooltip: {
-                    callbacks: getPercentageTooltipCallback()
-                }
+                legend: { position: "bottom", labels: { padding: 14, usePointStyle: true, font: { size: 11 } } },
+                tooltip: { callbacks: getPercentageTooltipCallback() }
             }
         }
     });
 }
 
 // =======================================
-// Recent Responses Table
+// Timeline Chart (Line Chart)
 // =======================================
 
-function renderTable(responses) {
-    tableData = responses;
-    filteredData = responses.slice();
-    currentPage = 1;
-    sortColumn = "";
-    sortDirection = "asc";
-    updateTable();
+function renderTimelineChart(responses) {
+    var dateCounts = {};
+    for (var i = 0; i < responses.length; i++) {
+        var ts = responses[i]["Timestamp"];
+        if (ts && ts.toString().trim() !== "") {
+            try {
+                var d = new Date(ts);
+                if (!isNaN(d.getTime())) {
+                    var dateKey = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                    dateCounts[dateKey] = (dateCounts[dateKey] || 0) + 1;
+                }
+            } catch (e) { /* skip invalid date */ }
+        }
+    }
+
+    var labels = Object.keys(dateCounts);
+    var data = Object.values(dateCounts);
+
+    // Sort by date
+    if (labels.length > 1) {
+        var combined = [];
+        for (var i = 0; i < labels.length; i++) {
+            combined.push({ label: labels[i], value: data[i] });
+        }
+        combined.sort(function(a, b) {
+            return new Date(a.label) - new Date(b.label);
+        });
+        labels = combined.map(function(c) { return c.label; });
+        data = combined.map(function(c) { return c.value; });
+    }
+
+    renderLineChart("timelineChart", labels, data, "Submissions");
 }
 
-function updateTable() {
-    var tbody = document.getElementById("tableBody");
-    var start = (currentPage - 1) * rowsPerPage;
-    var end = Math.min(start + rowsPerPage, filteredData.length);
+// =======================================
+// Requests Table
+// =======================================
+
+function renderRequestTable(requests) {
+    requestTableData = requests;
+    requestFilteredData = requests.slice();
+    requestCurrentPage = 1;
+    requestSortColumn = "";
+    requestSortDirection = "asc";
+    updateRequestTable();
+}
+
+function updateRequestTable() {
+    var tbody = document.getElementById("requestTableBody");
+    var start = (requestCurrentPage - 1) * requestRowsPerPage;
+    var end = Math.min(start + requestRowsPerPage, requestFilteredData.length);
 
     var html = "";
     for (var i = start; i < end; i++) {
-        var row = filteredData[i];
+        var row = requestFilteredData[i];
+        var requestId = row["Request ID"] || "--";
         var name = row["Name"] || "--";
         var email = row["Email"] || "--";
-        var ownership = row["Laptop Ownership"] || "--";
-        var timestamp = row["Timestamp"] || "--";
+        var dateVal = row["Request Date & Time"] || "--";
+        var status = row["Status"] || "--";
+        var approvedBy = row["Approved By"] || "--";
 
-        // Format timestamp
         var dateStr = "--";
-        if (timestamp && timestamp.toString().trim() !== "") {
+        if (dateVal && dateVal.toString().trim() !== "") {
             try {
-                var d = new Date(timestamp);
+                var d = new Date(dateVal);
                 if (!isNaN(d.getTime())) {
-                    dateStr = d.toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit"
-                    });
+                    dateStr = d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
                 } else {
-                    dateStr = timestamp.toString();
+                    dateStr = dateVal.toString();
                 }
-            } catch (e) {
-                dateStr = timestamp.toString();
-            }
+            } catch (e) { dateStr = dateVal.toString(); }
         }
 
-        var ownershipClass = "";
-        if (ownership === "Yes") {
-            ownershipClass = " ownership-yes";
-        } else if (ownership === "No") {
-            ownershipClass = " ownership-no";
-        }
+        var statusClass = "status-pending";
+        if (status === "Approved" || status === "Accepted") statusClass = "status-approved";
+        else if (status === "Rejected") statusClass = "status-rejected";
 
         html += '<tr>';
+        html += '<td title="' + escapeHtml(requestId) + '">' + escapeHtml(requestId) + '</td>';
         html += '<td title="' + escapeHtml(name) + '">' + escapeHtml(name) + '</td>';
         html += '<td title="' + escapeHtml(email) + '">' + escapeHtml(email) + '</td>';
-        html += '<td class="' + ownershipClass + '">' + escapeHtml(ownership) + '</td>';
         html += '<td>' + escapeHtml(dateStr) + '</td>';
+        html += '<td><span class="status-badge ' + statusClass + '">' + escapeHtml(status) + '</span></td>';
+        html += '<td title="' + escapeHtml(approvedBy) + '">' + escapeHtml(approvedBy) + '</td>';
         html += '</tr>';
     }
 
     tbody.innerHTML = html;
 
-    // Update pagination
-    var totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    var totalPages = Math.ceil(requestFilteredData.length / requestRowsPerPage);
     if (totalPages === 0) totalPages = 1;
+    document.getElementById("reqPageInfo").textContent = "Page " + requestCurrentPage + " of " + totalPages;
+    document.getElementById("reqPrevBtn").disabled = (requestCurrentPage <= 1);
+    document.getElementById("reqNextBtn").disabled = (requestCurrentPage >= totalPages);
+}
 
-    document.getElementById("pageInfo").textContent = "Page " + currentPage + " of " + totalPages;
-    document.getElementById("prevBtn").disabled = (currentPage <= 1);
-    document.getElementById("nextBtn").disabled = (currentPage >= totalPages);
+function handleRequestSearch() {
+    var query = document.getElementById("requestSearchInput").value.toLowerCase().trim();
+    var statusFilter = document.getElementById("requestStatusFilter").value;
+
+    requestFilteredData = [];
+    for (var i = 0; i < requestTableData.length; i++) {
+        var row = requestTableData[i];
+        var name = (row["Name"] || "").toString().toLowerCase();
+        var email = (row["Email"] || "").toString().toLowerCase();
+        var status = (row["Status"] || "").toString().trim();
+
+        var matchesSearch = query === "" || name.indexOf(query) !== -1 || email.indexOf(query) !== -1;
+        var matchesStatus = statusFilter === "all" || status === statusFilter;
+
+        if (matchesSearch && matchesStatus) {
+            requestFilteredData.push(row);
+        }
+    }
+    requestCurrentPage = 1;
+    updateRequestTable();
+}
+
+function handleRequestSort(column) {
+    if (requestSortColumn === column) {
+        requestSortDirection = (requestSortDirection === "asc") ? "desc" : "asc";
+    } else {
+        requestSortColumn = column;
+        requestSortDirection = "asc";
+    }
+
+    requestFilteredData.sort(function(a, b) {
+        var valA = (a[column] || "").toString().toLowerCase();
+        var valB = (b[column] || "").toString().toLowerCase();
+
+        if (column === "Request Date & Time") {
+            var dateA = new Date(a[column]);
+            var dateB = new Date(b[column]);
+            if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+                return requestSortDirection === "asc" ? dateA - dateB : dateB - dateA;
+            }
+        }
+
+        if (valA < valB) return requestSortDirection === "asc" ? -1 : 1;
+        if (valA > valB) return requestSortDirection === "asc" ? 1 : -1;
+        return 0;
+    });
+
+    requestCurrentPage = 1;
+    updateRequestTable();
+}
+
+// =======================================
+// Survey Responses Table
+// =======================================
+
+function renderSurveyTable(responses) {
+    surveyTableData = responses;
+    surveyFilteredData = responses.slice();
+    surveyCurrentPage = 1;
+    surveySortColumn = "";
+    surveySortDirection = "asc";
+    updateSurveyTable();
+}
+
+function updateSurveyTable() {
+    var tbody = document.getElementById("tableBody");
+    var start = (surveyCurrentPage - 1) * surveyRowsPerPage;
+    var end = Math.min(start + surveyRowsPerPage, surveyFilteredData.length);
+
+    var html = "";
+    for (var i = start; i < end; i++) {
+        var row = surveyFilteredData[i];
+        var name = row["Name"] || "--";
+        var email = row["Email"] || "--";
+        var ownership = row["Laptop Ownership"] || "--";
+        var usage = row["Usage Purpose"] || "--";
+        var brand = row["Preferred Brand"] || "--";
+        var timestamp = row["Timestamp"] || "--";
+        var completionTime = row["Completion Time"] || "--";
+
+        var dateStr = "--";
+        if (timestamp && timestamp.toString().trim() !== "") {
+            try {
+                var d = new Date(timestamp);
+                if (!isNaN(d.getTime())) {
+                    dateStr = d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+                } else {
+                    dateStr = timestamp.toString();
+                }
+            } catch (e) { dateStr = timestamp.toString(); }
+        }
+
+        // Format completion time
+        var ctStr = "--";
+        if (completionTime && completionTime.toString().trim() !== "") {
+            var ctParsed = parseFloat(completionTime);
+            if (!isNaN(ctParsed) && ctParsed > 0) {
+                var ctSec = Math.round(ctParsed);
+                if (ctSec >= 60) {
+                    ctStr = Math.floor(ctSec / 60) + "m " + (ctSec % 60) + "s";
+                } else {
+                    ctStr = ctSec + "s";
+                }
+            } else {
+                ctStr = completionTime.toString();
+            }
+        }
+
+        var ownershipClass = "";
+        if (ownership === "Yes") ownershipClass = " ownership-yes";
+        else if (ownership === "No") ownershipClass = " ownership-no";
+
+        html += '<tr>';
+        html += '<td title="' + escapeHtml(name) + '">' + escapeHtml(name) + '</td>';
+        html += '<td title="' + escapeHtml(email) + '">' + escapeHtml(email) + '</td>';
+        html += '<td class="' + ownershipClass + '">' + escapeHtml(ownership) + '</td>';
+        html += '<td>' + escapeHtml(usage) + '</td>';
+        html += '<td>' + escapeHtml(brand) + '</td>';
+        html += '<td>' + escapeHtml(dateStr) + '</td>';
+        html += '<td>' + escapeHtml(ctStr) + '</td>';
+        html += '</tr>';
+    }
+
+    tbody.innerHTML = html;
+
+    var totalPages = Math.ceil(surveyFilteredData.length / surveyRowsPerPage);
+    if (totalPages === 0) totalPages = 1;
+    document.getElementById("pageInfo").textContent = "Page " + surveyCurrentPage + " of " + totalPages;
+    document.getElementById("prevBtn").disabled = (surveyCurrentPage <= 1);
+    document.getElementById("nextBtn").disabled = (surveyCurrentPage >= totalPages);
+}
+
+function handleSurveySearch() {
+    var query = document.getElementById("searchInput").value.toLowerCase().trim();
+    var ownershipFilter = document.getElementById("ownershipFilter").value;
+
+    surveyFilteredData = [];
+    for (var i = 0; i < surveyTableData.length; i++) {
+        var row = surveyTableData[i];
+        var name = (row["Name"] || "").toString().toLowerCase();
+        var email = (row["Email"] || "").toString().toLowerCase();
+        var ownership = (row["Laptop Ownership"] || "").toString().trim();
+
+        var matchesSearch = query === "" || name.indexOf(query) !== -1 || email.indexOf(query) !== -1;
+        var matchesOwnership = ownershipFilter === "all" || ownership === ownershipFilter;
+
+        if (matchesSearch && matchesOwnership) {
+            surveyFilteredData.push(row);
+        }
+    }
+    surveyCurrentPage = 1;
+    updateSurveyTable();
+}
+
+function handleSurveySort(column) {
+    if (surveySortColumn === column) {
+        surveySortDirection = (surveySortDirection === "asc") ? "desc" : "asc";
+    } else {
+        surveySortColumn = column;
+        surveySortDirection = "asc";
+    }
+
+    surveyFilteredData.sort(function(a, b) {
+        var valA = (a[column] || "").toString().toLowerCase();
+        var valB = (b[column] || "").toString().toLowerCase();
+
+        if (column === "Timestamp") {
+            var dateA = new Date(a[column]);
+            var dateB = new Date(b[column]);
+            if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+                return surveySortDirection === "asc" ? dateA - dateB : dateB - dateA;
+            }
+        }
+
+        if (column === "Completion Time") {
+            var numA = parseFloat(a[column]) || 0;
+            var numB = parseFloat(b[column]) || 0;
+            return surveySortDirection === "asc" ? numA - numB : numB - numA;
+        }
+
+        if (valA < valB) return surveySortDirection === "asc" ? -1 : 1;
+        if (valA > valB) return surveySortDirection === "asc" ? 1 : -1;
+        return 0;
+    });
+
+    surveyCurrentPage = 1;
+    updateSurveyTable();
 }
 
 function escapeHtml(str) {
@@ -633,87 +973,13 @@ function escapeHtml(str) {
 }
 
 // =======================================
-// Table Search
-// =======================================
-
-function handleSearch() {
-    var query = document.getElementById("searchInput").value.toLowerCase().trim();
-    if (query === "") {
-        filteredData = tableData.slice();
-    } else {
-        filteredData = [];
-        for (var i = 0; i < tableData.length; i++) {
-            var name = (tableData[i]["Name"] || "").toString().toLowerCase();
-            var email = (tableData[i]["Email"] || "").toString().toLowerCase();
-            if (name.indexOf(query) !== -1 || email.indexOf(query) !== -1) {
-                filteredData.push(tableData[i]);
-            }
-        }
-    }
-    currentPage = 1;
-    updateTable();
-}
-
-// =======================================
-// Table Sorting
-// =======================================
-
-function handleSort(column) {
-    if (sortColumn === column) {
-        sortDirection = (sortDirection === "asc") ? "desc" : "asc";
-    } else {
-        sortColumn = column;
-        sortDirection = "asc";
-    }
-
-    filteredData.sort(function(a, b) {
-        var valA = (a[column] || "").toString().toLowerCase();
-        var valB = (b[column] || "").toString().toLowerCase();
-
-        // For timestamp, try to parse dates
-        if (column === "Timestamp") {
-            var dateA = new Date(a[column]);
-            var dateB = new Date(b[column]);
-            if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
-                valA = dateA.getTime();
-                valB = dateB.getTime();
-                if (sortDirection === "asc") {
-                    return valA - valB;
-                } else {
-                    return valB - valA;
-                }
-            }
-        }
-
-        if (valA < valB) {
-            return sortDirection === "asc" ? -1 : 1;
-        }
-        if (valA > valB) {
-            return sortDirection === "asc" ? 1 : -1;
-        }
-        return 0;
-    });
-
-    currentPage = 1;
-    updateTable();
-}
-
-// =======================================
 // Last Updated Timestamp
 // =======================================
 
 function updateLastUpdated() {
     var now = new Date();
-    var timeStr = now.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
-    });
-    var dateStr = now.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric"
-    });
+    var timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    var dateStr = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     document.getElementById("lastUpdated").textContent = "Last updated: " + dateStr + " " + timeStr;
 }
 
@@ -721,27 +987,39 @@ function updateLastUpdated() {
 // Main Render Dashboard
 // =======================================
 
-function renderDashboard(stats, responses) {
+function renderDashboard(stats, responses, requests) {
     var noDataMessage = document.getElementById("noDataMessage");
     var chartsGrid = document.getElementById("chartsGrid");
     var statsGrid = document.getElementById("statsGrid");
     var tableSection = document.getElementById("tableSection");
+    var requestTableSection = document.getElementById("requestTableSection");
+    var progressSection = document.getElementById("progressSection");
+    var requestChartsGrid = document.getElementById("requestChartsGrid");
     var loadingMessage = document.getElementById("loadingMessage");
 
     if (loadingMessage) loadingMessage.style.display = "none";
 
-    // Update dashboard cards from stats
+    // Update dashboard cards
     updateDashboardCards(stats);
 
-    // Update avg completion time from responses
-    var avgTime = calculateAvgCompletionTime(responses);
-    document.getElementById("avgCompletionTime").textContent = avgTime;
+    // Always show request-related sections if we have requests
+    if (requests && requests.length > 0) {
+        progressSection.style.display = "block";
+        requestChartsGrid.style.display = "grid";
+        requestTableSection.style.display = "block";
+        renderRequestCharts(stats);
+        renderRequestTable(requests);
+    } else {
+        progressSection.style.display = "none";
+        requestChartsGrid.style.display = "none";
+        requestTableSection.style.display = "none";
+    }
 
     // Check if we have survey data
     if (!responses || responses.length === 0) {
         noDataMessage.style.display = "block";
         chartsGrid.style.display = "none";
-        statsGrid.style.display = "none";
+        statsGrid.style.display = "grid";
         tableSection.style.display = "none";
         return;
     }
@@ -751,11 +1029,11 @@ function renderDashboard(stats, responses) {
     statsGrid.style.display = "grid";
     tableSection.style.display = "block";
 
-    // Render all charts
+    // Render all survey charts
     renderAllCharts(responses);
 
-    // Render table
-    renderTable(responses);
+    // Render survey table
+    renderSurveyTable(responses);
 
     // Update timestamp
     updateLastUpdated();
@@ -772,25 +1050,40 @@ function loadAllData() {
     var noDataMessage = document.getElementById("noDataMessage");
     noDataMessage.style.display = "none";
 
-    // Fetch all data in parallel
-    var statsPromise = fetchDashboardStats();
-    var surveyPromise = fetchSurveyData();
-
-    Promise.all([statsPromise, surveyPromise])
-        .then(function(results) {
-            var stats = results[0] || {};
-            var responses = results[1] || [];
-
-            // Destroy existing charts before re-rendering
-            destroyAllCharts();
-
-            renderDashboard(stats, responses);
+    // Try the combined endpoint first
+    fetchDashboardData()
+        .then(function(dashboardData) {
+            if (dashboardData.stats && dashboardData.stats.totalRequests !== undefined) {
+                // Got full data from getDashboardData
+                destroyAllCharts();
+                renderDashboard(
+                    dashboardData.stats,
+                    dashboardData.responses || [],
+                    dashboardData.requests || []
+                );
+            } else {
+                // Fallback to separate endpoints
+                return Promise.all([fetchDashboardStats(), fetchSurveyData(), fetchRequestData()])
+                    .then(function(results) {
+                        destroyAllCharts();
+                        renderDashboard(results[0] || {}, results[1] || [], results[2] || []);
+                    });
+            }
         })
         .catch(function(error) {
             console.error("Error loading dashboard data:", error);
-            if (loadingMessage) loadingMessage.style.display = "none";
-            var noDataMessage = document.getElementById("noDataMessage");
-            noDataMessage.style.display = "block";
+            // Fallback to separate endpoints
+            return Promise.all([fetchDashboardStats(), fetchSurveyData(), fetchRequestData()])
+                .then(function(results) {
+                    destroyAllCharts();
+                    renderDashboard(results[0] || {}, results[1] || [], results[2] || []);
+                })
+                .catch(function(err) {
+                    console.error("Fallback also failed:", err);
+                    if (loadingMessage) loadingMessage.style.display = "none";
+                    var noDataMessage = document.getElementById("noDataMessage");
+                    noDataMessage.style.display = "block";
+                });
         });
 }
 
@@ -799,9 +1092,7 @@ function loadAllData() {
 // =======================================
 
 function startAutoRefresh() {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-    }
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(function() {
         loadAllData();
     }, 30000);
@@ -825,32 +1116,46 @@ document.getElementById("refreshBtn").addEventListener("click", function() {
 
 // Auto-refresh toggle
 document.getElementById("autoRefreshToggle").addEventListener("change", function() {
-    if (this.checked) {
-        startAutoRefresh();
-    } else {
-        stopAutoRefresh();
-    }
+    if (this.checked) startAutoRefresh();
+    else stopAutoRefresh();
 });
 
-// Search input
+// Survey search input
 document.getElementById("searchInput").addEventListener("input", function() {
-    handleSearch();
+    handleSurveySearch();
 });
 
-// Pagination buttons
+// Ownership filter
+document.getElementById("ownershipFilter").addEventListener("change", function() {
+    handleSurveySearch();
+});
+
+// Request search input
+document.getElementById("requestSearchInput").addEventListener("input", function() {
+    handleRequestSearch();
+});
+
+// Request status filter
+document.getElementById("requestStatusFilter").addEventListener("change", function() {
+    handleRequestSearch();
+});
+
+// Survey pagination
 document.getElementById("prevBtn").addEventListener("click", function() {
-    if (currentPage > 1) {
-        currentPage--;
-        updateTable();
-    }
+    if (surveyCurrentPage > 1) { surveyCurrentPage--; updateSurveyTable(); }
+});
+document.getElementById("nextBtn").addEventListener("click", function() {
+    var totalPages = Math.ceil(surveyFilteredData.length / surveyRowsPerPage);
+    if (surveyCurrentPage < totalPages) { surveyCurrentPage++; updateSurveyTable(); }
 });
 
-document.getElementById("nextBtn").addEventListener("click", function() {
-    var totalPages = Math.ceil(filteredData.length / rowsPerPage);
-    if (currentPage < totalPages) {
-        currentPage++;
-        updateTable();
-    }
+// Request pagination
+document.getElementById("reqPrevBtn").addEventListener("click", function() {
+    if (requestCurrentPage > 1) { requestCurrentPage--; updateRequestTable(); }
+});
+document.getElementById("reqNextBtn").addEventListener("click", function() {
+    var totalPages = Math.ceil(requestFilteredData.length / requestRowsPerPage);
+    if (requestCurrentPage < totalPages) { requestCurrentPage++; updateRequestTable(); }
 });
 
 // Sortable table headers
@@ -858,14 +1163,21 @@ var sortableHeaders = document.querySelectorAll(".sortable");
 for (var i = 0; i < sortableHeaders.length; i++) {
     sortableHeaders[i].addEventListener("click", function() {
         var column = this.getAttribute("data-column");
-        handleSort(column);
+        var table = this.getAttribute("data-table");
+
+        if (table === "requests") {
+            handleRequestSort(column);
+        } else {
+            handleSurveySort(column);
+        }
 
         // Update sort indicators
-        var allHeaders = document.querySelectorAll(".sortable");
+        var allHeaders = document.querySelectorAll(".sortable[data-table='" + table + "']");
         for (var j = 0; j < allHeaders.length; j++) {
             allHeaders[j].classList.remove("sort-asc", "sort-desc");
         }
-        this.classList.add(sortDirection === "asc" ? "sort-asc" : "sort-desc");
+        var dir = table === "requests" ? requestSortDirection : surveySortDirection;
+        this.classList.add(dir === "asc" ? "sort-asc" : "sort-desc");
     });
 }
 
