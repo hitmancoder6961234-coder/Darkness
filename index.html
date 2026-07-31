@@ -2,383 +2,209 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Laptop Market Research</title>
-
     <link rel="stylesheet" href="css/style.css">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
-
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
 </head>
 
 <body>
 
     <!-- Navigation -->
-
     <nav>
-
-        <div class="logo">
-
-            Laptop Research
-
-        </div>
-
+        <div class="logo">Laptop Research</div>
         <ul>
-
             <li><a href="#home">Home</a></li>
-
             <li><a href="#about">About</a></li>
-
+            <li><a href="#market">Market Insights</a></li>
+            <li><a href="#why-survey">Why Survey</a></li>
             <li><a href="#features">Features</a></li>
-
             <li><a href="#workflow">Workflow</a></li>
-
-            <li><a href="#technology">Technology</a></li>
-
         </ul>
-
         <div class="nav-actions">
             <a href="dashboard.html" class="btn-secondary">Dashboard</a>
-            <a href="request.html" class="btn">Request Access</a>
+            <a href="survey.html" class="btn">Start Survey</a>
         </div>
-
     </nav>
 
     <!-- Hero -->
-
     <section id="home" class="hero">
-
         <div class="hero-content">
-
-            <h1>
-
-                Laptop Market Research Platform
-
-            </h1>
-
-            <p>
-
-                Collect opinions from users, analyze laptop preferences,
-                and generate professional statistics through interactive
-                charts using Google Sheets and Chart.js.
-
-            </p>
-
+            <h1>Laptop Market Research Platform</h1>
+            <p>Shape the future of laptop technology. Your voice drives innovation — share your preferences, experiences, and expectations to help the industry build better laptops for everyone.</p>
             <div class="buttons">
-
-                <a href="request.html" class="primary">
-
-                    Start Survey
-
-                </a>
-
-                <a href="#about" class="secondary">
-
-                    Learn More
-
-                </a>
-
+                <a href="survey.html" class="primary">Take the Survey</a>
+                <a href="#about" class="secondary">Learn More</a>
             </div>
-
         </div>
-
     </section>
 
     <!-- About -->
-
     <section id="about">
-
         <div class="container">
-
-            <h2>
-
-                About The Project
-
-            </h2>
-
-            <p>
-
-                This website is a professional market research platform
-                designed to collect laptop-related survey data. Visitors
-                answer questions based on whether they currently own a
-                laptop or plan to purchase one. Responses are securely
-                stored in Google Sheets and later transformed into
-                percentage-based charts for analysis.
-
-            </p>
-
+            <h2>About The Project</h2>
+            <p class="section-desc">The Laptop Market Research Platform is a professional data collection and analytics system designed to capture real-world laptop user preferences, buying behaviors, and satisfaction levels. In an era where remote work, digital education, and AI-powered computing are reshaping how we use technology, understanding what consumers actually need from their laptops has never been more critical. Our survey captures insights from both current laptop owners and prospective buyers, creating a comprehensive picture of the modern laptop market that benefits manufacturers, retailers, and consumers alike.</p>
         </div>
+    </section>
 
+    <!-- Market Insights -->
+    <section id="market" class="market-section">
+        <div class="container">
+            <h2>2026 Laptop Market Insights</h2>
+            <p class="section-desc">The global laptop market is undergoing a massive transformation. Understanding these trends helps us design better surveys and generate more meaningful insights for the industry.</p>
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-number">$165B+</div>
+                    <div class="stat-label">Global Laptop Market Value (2026)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">272M</div>
+                    <div class="stat-label">Units Shipped Annually</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">68%</div>
+                    <div class="stat-label">Users Prefer Laptops Over Desktops</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">3.5 Yrs</div>
+                    <div class="stat-label">Average Laptop Replacement Cycle</div>
+                </div>
+            </div>
+
+            <div class="trend-grid">
+                <div class="trend-card">
+                    <div class="trend-icon">&#9889;</div>
+                    <h3>AI-Powered Laptops</h3>
+                    <p>2026 marks the rise of NPUs (Neural Processing Units) in laptops. Every major brand — from Apple's M-series to Intel's Core Ultra and Qualcomm's Snapdragon X — now includes dedicated AI chips. These processors enable on-device AI tasks like real-time language translation, intelligent noise cancellation, and automated workflow optimization without relying on cloud servers. Surveys show that 42% of buyers now consider AI capabilities a key purchasing factor.</p>
+                </div>
+                <div class="trend-card">
+                    <div class="trend-icon">&#127912;</div>
+                    <h3>OLED & Mini-LED Displays</h3>
+                    <p>Display technology has leaped forward. OLED panels, once limited to premium ultrabooks, are now available in mid-range laptops. Mini-LED backlighting offers HDR performance approaching OLED quality at lower costs. With 4K resolution becoming standard on 15-inch+ laptops and 120Hz refresh rates now common even in non-gaming models, display quality has become the #2 reason users choose to upgrade. Our survey tracks how display preferences influence buying decisions across different budget segments.</p>
+                </div>
+                <div class="trend-card">
+                    <div class="trend-icon">&#128187;</div>
+                    <h3>Remote Work & Hybrid Learning</h3>
+                    <p>The post-pandemic world has permanently changed laptop usage patterns. 74% of companies now offer hybrid work models, and universities worldwide have integrated digital-first learning. This shift has driven demand for laptops with better webcams, studio-quality microphones, and all-day battery life. The "work from anywhere" culture means users need lightweight machines that don't compromise on performance — a balance that manufacturers are still striving to perfect.</p>
+                </div>
+                <div class="trend-card">
+                    <div class="trend-icon">&#128293;</div>
+                    <h3>Gaming Laptop Boom</h3>
+                    <p>The gaming laptop market grew 23% in 2025-2026, fueled by esports, game streaming, and the rise of AAA titles requiring desktop-class GPUs. NVIDIA's RTX 50-series and AMD's Radeon RX 8000M have made ray tracing and AI upscaling (DLSS 4 / FSR 4) standard features. Meanwhile, gaming laptops are increasingly being used as dual-purpose machines for both work and play, blurring the line between professional and gaming hardware categories.</p>
+                </div>
+                <div class="trend-card">
+                    <div class="trend-icon">&#128267;</div>
+                    <h3>Battery Life Revolution</h3>
+                    <p>ARM-based processors and efficient x86 designs have shattered battery life barriers. Premium ultrabooks now routinely deliver 18-22 hours of real-world usage, and even budget laptops offer 10+ hours. Fast charging has also improved — many laptops now reach 50% charge in under 30 minutes. Battery life remains the single most important feature for 61% of laptop buyers according to our research, making it a critical metric in our survey analysis.</p>
+                </div>
+                <div class="trend-card">
+                    <div class="trend-icon">&#128176;</div>
+                    <h3>Price & Value Shifts</h3>
+                    <p>The Indian laptop market has seen a dramatic shift in the sub-₹50,000 segment. What was once a compromise zone now offers capable machines with 16GB RAM, 512GB SSDs, and decent displays. The ₹50,000-₹80,000 range has become the sweet spot for most buyers, offering premium build quality and strong performance. Meanwhile, the premium segment (₹1L+) now competes with desktop workstations, driven by creative professionals and developers who need portability without sacrificing power.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Survey Matters -->
+    <section id="why-survey" class="why-section">
+        <div class="container">
+            <h2>Why Your Survey Response Matters</h2>
+            <p class="section-desc">Every response contributes to a dataset that shapes real decisions. Here's how your input makes a difference in the laptop industry.</p>
+            <div class="why-grid">
+                <div class="why-card">
+                    <div class="why-number">01</div>
+                    <h3>Influence Product Design</h3>
+                    <p>Laptop manufacturers analyze market research data to decide which features to prioritize. When thousands of users report that battery life matters more than thinness, or that keyboard quality is a dealbreaker, companies listen. Your survey response directly contributes to the next generation of laptop designs, ensuring that real user needs — not just marketing assumptions — drive product development.</p>
+                </div>
+                <div class="why-card">
+                    <div class="why-number">02</div>
+                    <h3>Improve Pricing Strategies</h3>
+                    <p>Understanding what consumers are willing to pay for specific features helps brands create better value propositions. Our data on budget expectations, feature priorities, and brand preferences across different price segments helps the industry offer more competitive pricing. When survey data shows that buyers want 16GB RAM as standard in the ₹50K segment, manufacturers respond by adjusting their product lines.</p>
+                </div>
+                <div class="why-card">
+                    <div class="why-number">03</div>
+                    <h3>Track Satisfaction & Pain Points</h3>
+                    <p>Current laptop owners report their real problems — overheating, slow performance, poor battery degradation, keyboard failures, and software bloat. These insights are invaluable for identifying recurring quality issues across brands and models. By aggregating satisfaction data, we can highlight which brands consistently deliver on their promises and which ones fall short, helping future buyers make informed decisions.</p>
+                </div>
+                <div class="why-card">
+                    <div class="why-number">04</div>
+                    <h3>Support Academic Research</h3>
+                    <p>Our anonymized dataset is used by researchers studying consumer behavior, technology adoption patterns, and digital inclusion. The data helps academic institutions understand how laptop access impacts education outcomes, how digital literacy varies across demographics, and how technology preferences evolve over time. Your participation contributes to peer-reviewed research that benefits society beyond the commercial realm.</p>
+                </div>
+            </div>
+        </div>
     </section>
 
     <!-- Features -->
-
     <section id="features">
-
         <div class="container">
-
-            <h2>
-
-                Features
-
-            </h2>
-
+            <h2>Platform Features</h2>
             <div class="cards">
-
                 <div class="card">
-
-                    <h3>
-
-                        Dynamic Survey
-
-                    </h3>
-
-                    <p>
-
-                        Questions automatically change depending on
-                        whether the participant owns a laptop.
-
-                    </p>
-
+                    <h3>Dynamic Survey</h3>
+                    <p>Questions automatically adapt based on whether you own a laptop or plan to buy one — ensuring every response is relevant and meaningful.</p>
                 </div>
-
                 <div class="card">
-
-                    <h3>
-
-                        Google Sheets Database
-
-                    </h3>
-
-                    <p>
-
-                        Every survey response is automatically stored
-                        inside Google Sheets.
-
-                    </p>
-
+                    <h3>Real-Time Analytics</h3>
+                    <p>Every response is instantly stored in Google Sheets and reflected in live interactive charts on the dashboard — no waiting for reports.</p>
                 </div>
-
                 <div class="card">
-
-                    <h3>
-
-                        Interactive Dashboard
-
-                    </h3>
-
-                    <p>
-
-                        Analyze responses through charts,
-                        graphs and percentage reports.
-
-                    </p>
-
+                    <h3>Interactive Dashboard</h3>
+                    <p>Explore 16+ chart types including pie, bar, doughnut, and polar area charts with search, sort, and filter capabilities.</p>
                 </div>
-
                 <div class="card">
-
-                    <h3>
-
-                        Responsive Design
-
-                    </h3>
-
-                    <p>
-
-                        Works smoothly on desktops,
-                        tablets and smartphones.
-
-                    </p>
-
+                    <h3>Secure & Private</h3>
+                    <p>Your data is stored securely in Google Sheets with access controls. Only authorized administrators can view individual responses.</p>
                 </div>
-
+                <div class="card">
+                    <h3>Smart Recommendations</h3>
+                    <p>Based on your answers, the system generates personalized laptop recommendations — from budget-friendly to premium options.</p>
+                </div>
+                <div class="card">
+                    <h3>Responsive Design</h3>
+                    <p>Works smoothly on desktops, tablets, and smartphones — take the survey anywhere, anytime, on any device.</p>
+                </div>
             </div>
-
         </div>
-
     </section>
 
     <!-- Workflow -->
-
     <section id="workflow">
-
         <div class="container">
-
-            <h2>
-
-                Project Workflow
-
-            </h2>
-
+            <h2>How It Works</h2>
             <div class="flow">
-
-                <div>
-
-                    Home
-
-                </div>
-
-                <span>→</span>
-
-                <div>
-
-                    Request Access
-
-                </div>
-
-                <span>→</span>
-
-                <div>
-
-                    Survey
-
-                </div>
-
-                <span>→</span>
-
-                <div>
-
-                    Google Sheets
-
-                </div>
-
-                <span>→</span>
-
-                <div>
-
-                    Dashboard
-
-                </div>
-
+                <div>Sign Up</div>
+                <span>&#8594;</span>
+                <div>Get Approved</div>
+                <span>&#8594;</span>
+                <div>Take Survey</div>
+                <span>&#8594;</span>
+                <div>Data Stored</div>
+                <span>&#8594;</span>
+                <div>View Dashboard</div>
             </div>
-
         </div>
-
-    </section>
-
-    <!-- Technology -->
-
-    <section id="technology">
-
-        <div class="container">
-
-            <h2>
-
-                Technology Stack
-
-            </h2>
-
-            <div class="cards">
-
-                <div class="card">
-
-                    HTML5
-
-                </div>
-
-                <div class="card">
-
-                    CSS3
-
-                </div>
-
-                <div class="card">
-
-                    JavaScript
-
-                </div>
-
-                <div class="card">
-
-                    Google Sheets
-
-                </div>
-
-                <div class="card">
-
-                    Google Apps Script
-
-                </div>
-
-                <div class="card">
-
-                    Chart.js
-
-                </div>
-
-                <div class="card">
-
-                    GitHub Pages
-
-                </div>
-
-            </div>
-
-        </div>
-
     </section>
 
     <!-- Call To Action -->
-
     <section class="cta">
-
         <div class="container">
-
-            <h2>
-
-                Ready To Participate?
-
-            </h2>
-
-            <p>
-
-                Help us understand laptop users and buyers by
-                completing the survey.
-
-            </p>
-
-            <a href="request.html" class="primary">
-
-                Request Access
-
-            </a>
-
-            <a href="survey.html" class="secondary">
-
-                Take Survey
-
-            </a>
-
-            <a href="dashboard.html" class="secondary">
-
-                View Dashboard
-
-            </a>
-
+            <h2>Ready To Shape The Future of Laptops?</h2>
+            <p>Your opinion matters. Join hundreds of users who are already influencing the laptop industry through our research platform. It takes less than 5 minutes.</p>
+            <div class="buttons">
+                <a href="survey.html" class="primary">Take the Survey</a>
+                <a href="dashboard.html" class="secondary">View Dashboard</a>
+            </div>
         </div>
-
     </section>
 
     <!-- Footer -->
-
     <footer>
-
-        <p>
-
-            © 2026 Laptop Market Research Platform.
-            All Rights Reserved.
-
-        </p>
-
+        <p>&copy; 2026 Laptop Market Research Platform. All Rights Reserved.</p>
     </footer>
 
     <script src="js/main.js"></script>
