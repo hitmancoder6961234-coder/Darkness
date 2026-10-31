@@ -1,17 +1,14 @@
 // ===============================
 // Darkness - Admin Console
 // Manage access requests + survey responses.
-// READ: uses the same public Apps Script endpoint as the dashboard.
-// WRITE (approve / reject / pending): requires the owner's ADMIN_KEY, verified server-side
-// by google-apps-script.js. The key is kept in sessionStorage only and sent only in POST bodies.
+// Sign-in: js/auth.js. The password is verified ON THE SERVER; this page only holds a signed session token
+// (sessionStorage). Every read (adminData) and write (adminSetStatus) sends that token and is refused without it.
 // ===============================
 (function () {
     "use strict";
 
-    var API_URL = "https://script.google.com/macros/s/AKfycbxNezU-FZQzKrBSEB8dj0MC8-30a1E7_gw7cK68hHWXrZHofW9gwVglDwlW4e5vkpEw6Q/exec";
     var AUDIT_KEY = "darkness.admin.audit";
     var PREF_KEY = "darkness.admin.prefs";
-    var SESSION_KEY = "darkness.admin.key";
     var STALE_DAYS = 3;
 
     function $(id) { return document.getElementById(id); }
@@ -29,12 +26,12 @@
 
     var state = {
         data: null, loading: false, error: "", view: "overview", autoTimer: null,
-        key: ssGet(SESSION_KEY), charts: {}, loadedAt: 0,
+        charts: {}, loadedAt: 0,
         req: { q: "", status: "all", sort: { col: "date", dir: "desc" }, page: 1, size: prefs.size, sel: {} },
         res: { q: "", own: "all", brand: "all", sort: { col: "ts", dir: "desc" }, page: 1, size: prefs.size },
         quality: {}
     };
-    state.unlocked = !!state.key;
+    state.unlocked = true; // the page only renders after DarkAuth sign-in
 
     var VIEWS = {
         overview: { title: "Overview", sub: "Live management view of access requests and survey responses.", ico: "📊" },
@@ -99,30 +96,14 @@
         return { requests: reqs, responses: resps };
     }
 
-    async function fetchJson(url, ms) {
-        var ctl = new AbortController();
-        var timer = setTimeout(function () { ctl.abort(); }, ms || 25000);
-        try {
-            var resp = await fetch(url, { signal: ctl.signal });
-            if (!resp.ok) throw new Error("HTTP " + resp.status);
-            return await resp.json();
-        } finally { clearTimeout(timer); }
-    }
-
     async function loadData(silent) {
         if (state.loading) return;
         state.loading = true;
         if (!silent) { state.error = ""; if (!state.data) render(); }
         $("admRefresh").disabled = true;
         try {
-            var raw;
-            try {
-                raw = await fetchJson(API_URL + "?action=getDashboardData");
-                if (!raw || !Array.isArray(raw.requests)) throw new Error("Unexpected data");
-            } catch (e) {
-                var parts = await Promise.all([fetchJson(API_URL + "?action=getRequestData"), fetchJson(API_URL + "?action=getSurveyData")]);
-                raw = { requests: Array.isArray(parts[0]) ? parts[0] : [], responses: Array.isArray(parts[1]) ? parts[1] : [] };
-            }
+            var raw = await DarkAuth.call("adminData");
+            if (!raw || !Array.isArray(raw.requests)) throw new Error("Unexpected data from the server");
             state.data = normalise(raw);
             state.loadedAt = Date.now();
             state.error = "";
@@ -140,28 +121,9 @@
 
     // ---------- admin API (write) ----------
     async function adminCall(action, payload) {
-        var body = JSON.stringify(Object.assign({ action: action, key: state.key }, payload || {}));
-        var headers = { "Content-Type": "text/plain;charset=utf-8" }; // simple request: no CORS preflight
-        var ctl = new AbortController();
-        var timer = setTimeout(function () { ctl.abort(); }, 30000);
-        try {
-            var resp = await fetch(API_URL, { method: "POST", headers: headers, body: body, signal: ctl.signal });
-            var text = await resp.text();
-            var json = null;
-            try { json = JSON.parse(text); } catch (e) { throw new Error("The server returned an unexpected response."); }
-            return { json: json, verified: true };
-        } catch (e) {
-            if (e && e.name === "AbortError") throw new Error("The request timed out.");
-            if (e instanceof TypeError) {
-                // The browser may have blocked READING the response (CORS). Re-send once in no-cors mode
-                // (status changes are idempotent server-side, so this cannot double-apply or double-email).
-                try {
-                    await fetch(API_URL, { method: "POST", mode: "no-cors", headers: headers, body: body });
-                    return { json: null, verified: false };
-                } catch (e2) { throw new Error("Network error: could not reach the server."); }
-            }
-            throw e;
-        } finally { clearTimeout(timer); }
+        // DarkAuth attaches the session token, re-prompts if it expired, and throws on any server error
+        var json = await DarkAuth.call(action, payload || {});
+        return { json: json, verified: true };
     }
 
     function actorName() { return prefs.adminName.trim() || "Admin console"; }
@@ -232,9 +194,9 @@
 
     function renderKeyBtn() {
         var b = $("admKeyBtn");
-        b.setAttribute("data-state", state.unlocked ? "open" : "locked");
-        b.innerHTML = state.unlocked ? "🔓 Unlocked" : "🔒 Locked";
-        b.title = state.unlocked ? "Admin actions enabled for this tab. Click to lock." : "Click to enter the admin key and enable approvals.";
+        b.setAttribute("data-state", "open");
+        b.textContent = "Sign out";
+        b.title = "End this admin session";
     }
 
     function go(view) {
@@ -597,7 +559,6 @@
     function confirmStatus(emails, status) {
         emails = emails.filter(Boolean);
         if (!emails.length) return;
-        if (!state.unlocked) { openUnlock(function () { confirmStatus(emails, status); }); return; }
         var verb = { Approved: "Approve", Rejected: "Reject", Pending: "Move to pending" }[status];
         var list = emails.slice(0, 8).map(esc).join("<br>") + (emails.length > 8 ? "<br>…and " + (emails.length - 8) + " more" : "");
         var mail = status === "Approved"
@@ -612,10 +573,9 @@
                     btn.disabled = true;
                     res.innerHTML = '<div class="adm-res adm-res--info">Applying…</div>';
                     try {
-                        var out = await adminCall("adminSetStatus", { newStatus: status, emails: emails, by: actorName(), sendEmail: send ? "true" : "false" });
+                        var out = await adminCall("adminSetStatus", { newStatus: status, emails: emails, by: prefs.adminName.trim(), sendEmail: send ? "true" : "false" });
                         if (out.json && out.json.status !== "success") {
                             var msg = out.json.message || "The server refused the request.";
-                            if (/invalid admin key/i.test(msg)) lock(true);
                             res.innerHTML = '<div class="adm-res adm-res--err">' + esc(msg) + "</div>";
                             audit({ action: verb, status: "failed", count: emails.length, emails: emails.slice(0, 5), note: msg });
                             btn.disabled = false;
@@ -655,52 +615,11 @@
         var set = {};
         emails.forEach(function (e) { set[e.toLowerCase()] = true; });
         var bad = state.data.requests.filter(function (r) { return set[r.email.toLowerCase()] && r.status !== status; }).length;
-        if (bad) toast(bad + " request" + (bad === 1 ? "" : "s") + " did not change in the sheet. Check the admin key and the Apps Script deployment.", "danger");
+        if (bad) toast(bad + " request" + (bad === 1 ? "" : "s") + " did not change in the sheet. Check that you are still signed in and that the Apps Script is deployed.", "danger");
     }
 
-    // ---------- unlock ----------
-    function lock(silent) {
-        state.key = ""; state.unlocked = false; ssSet(SESSION_KEY, "");
-        renderKeyBtn();
-        if (!silent) toast("Admin actions locked.", "success");
-    }
-
-    function openUnlock(then) {
-        showModal("Unlock admin actions",
-            "<p>Enter the <strong>ADMIN_KEY</strong> you saved in the Apps Script project's Script properties. It is checked on the server, kept only in this tab, and cleared when the tab closes.</p>" +
-            '<div class="adm-field"><label for="uName">Your name <small>(recorded as &ldquo;Decided by&rdquo;)</small></label><input type="text" id="uName" maxlength="60" autocomplete="name" value="' + esc(prefs.adminName) + '"></div>' +
-            '<div class="adm-field"><label for="uKey">Admin key</label><input type="password" id="uKey" autocomplete="off" spellcheck="false"></div><div id="uRes" aria-live="polite"></div>' +
-            '<div class="adm-modal__foot"><button type="button" class="adm-btn" data-close>Cancel</button><button type="button" class="adm-btn adm-btn--primary" id="uGo">Unlock</button></div>',
-            function (m) {
-                var keyEl = m.querySelector("#uKey");
-                async function go() {
-                    var key = keyEl.value.trim(), res = m.querySelector("#uRes"), btn = m.querySelector("#uGo");
-                    if (!key) { res.innerHTML = '<div class="adm-res adm-res--err">Enter the admin key.</div>'; return; }
-                    prefs.adminName = m.querySelector("#uName").value.trim(); lsSet(PREF_KEY, prefs);
-                    btn.disabled = true; res.innerHTML = '<div class="adm-res adm-res--info">Checking…</div>';
-                    var prev = state.key; state.key = key;
-                    try {
-                        var out = await adminCall("adminPing", {});
-                        if (out.json && out.json.status !== "success") {
-                            state.key = prev;
-                            res.innerHTML = '<div class="adm-res adm-res--err">' + esc(out.json.message || "Key rejected.") + "</div>";
-                            btn.disabled = false; return;
-                        }
-                        ssSet(SESSION_KEY, key); state.unlocked = true;
-                        closeModal(); renderKeyBtn();
-                        toast(out.json ? "Admin actions unlocked." : "Key saved. The browser blocked reading the reply, so the first approval will confirm it.", out.json ? "success" : "warning");
-                        if (then) then();
-                    } catch (e) {
-                        state.key = prev;
-                        res.innerHTML = '<div class="adm-res adm-res--err">' + esc(e.message) + "</div>";
-                        btn.disabled = false;
-                    }
-                }
-                m.querySelector("#uGo").addEventListener("click", go);
-                keyEl.addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
-                m.querySelector("#uName").focus();
-            });
-    }
+    // ---------- sign out ----------
+    function signOut() { DarkAuth.logout(); }
 
     // ---------- drawer ----------
     var drawerOpener = null;
@@ -868,9 +787,9 @@
         if (!(lvl >= 0)) lvl = 2;
         return '<div class="adm-settings">' +
             '<div class="adm-panel"><h2>Admin access</h2>' +
-            '<div class="adm-setrow"><div><strong>Admin key</strong><span>' + (state.unlocked ? "Unlocked for this tab. Cleared when the tab closes." : "Locked. Required to approve or reject requests.") + '</span></div><button type="button" class="adm-btn ' + (state.unlocked ? "" : "adm-btn--primary") + '" id="stKey">' + (state.unlocked ? "Lock now" : "Unlock…") + "</button></div>" +
-            '<div class="adm-setrow"><div><strong>Your name</strong><span>Recorded as &ldquo;Decided by&rdquo; on every approval or rejection.</span></div><div class="adm-field" style="margin:0"><input type="text" id="stName" maxlength="60" value="' + esc(prefs.adminName) + '" placeholder="Admin console"></div></div>' +
-            '<div class="adm-note">Reading data uses the same open endpoint as the public dashboard. <strong>Approving/rejecting is protected only by ADMIN_KEY on the server</strong> (set in the Apps Script project\'s Script properties, then deploy a new version). Locking this page does not hide the data the endpoint already serves.</div></div>' +
+            '<div class="adm-setrow"><div><strong>Admin session</strong><span>Signed in. The session ends after 8 hours or when you close the tab.</span></div><button type="button" class="adm-btn" id="stKey">Sign out</button></div>' +
+            '<div class="adm-setrow"><div><strong>Your name</strong><span>Recorded as &ldquo;Decided by&rdquo; on every approval or rejection.</span></div><div class="adm-field" style="margin:0"><input type="text" id="stName" maxlength="60" value="' + esc(prefs.adminName) + '" placeholder="Defaults to your login"></div></div>' +
+            '<div class="adm-note">The password is checked on the server, and the dashboard data is only returned to a signed-in session. Rotate <code>SESSION_SECRET</code> in the Apps Script properties to sign everyone out.</div></div>' +
             '<div class="adm-panel"><h2>Display</h2><div class="adm-setrow"><div><strong>Glow level</strong><span>Controls the neon lighting effects on every page (saved in this browser).</span></div><div id="stFx" class="adm-actions">' +
             [["Off", 0], ["Subtle", 1], ["Normal", 2], ["Vivid", 3]].map(function (o) { return '<button type="button" class="adm-btn adm-btn--sm' + (o[1] === lvl ? " adm-btn--primary" : "") + '" data-fx="' + o[1] + '">' + o[0] + "</button>"; }).join("") + "</div></div>" +
             '<div class="adm-setrow"><div><strong>Auto-refresh</strong><span>Reload data every 30 seconds (also in the top bar).</span></div><span>' + (state.autoTimer ? "On" : "Off") + "</span></div></div>" +
@@ -881,7 +800,7 @@
     }
 
     function bindSettings() {
-        $("stKey").addEventListener("click", function () { if (state.unlocked) { lock(false); render(); } else openUnlock(render); });
+        $("stKey").addEventListener("click", signOut);
         $("stName").addEventListener("input", function (e) { prefs.adminName = e.target.value; lsSet(PREF_KEY, prefs); });
         Array.prototype.forEach.call(document.querySelectorAll("[data-fx]"), function (b) {
             b.addEventListener("click", function () {
@@ -955,7 +874,7 @@
             if (e.target.checked) state.autoTimer = setInterval(function () { if (!document.hidden) loadData(true); }, 30000);
             if (state.view === "settings") render();
         });
-        $("admKeyBtn").addEventListener("click", function () { if (state.unlocked) lock(false); else openUnlock(); });
+        $("admKeyBtn").addEventListener("click", signOut);
         window.addEventListener("hashchange", function () { var h = location.hash.replace("#", ""); if (VIEWS[h] && h !== state.view) { state.view = h; render(); } });
         var h = location.hash.replace("#", "");
         if (VIEWS[h]) state.view = h;

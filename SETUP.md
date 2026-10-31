@@ -73,23 +73,33 @@ The current dashboard works with localStorage for demo purposes. For multi-user 
 
 ---
 
-# Admin Console (`admin.html`)
+# Admin login (`admin.html`, `dashboard.html`, AI Lab survey data)
 
-A management console for access requests and survey responses: KPIs and charts, search/sort/filter, bulk approve/reject, data-quality checks, CSV export and a local audit log.
+The admin dashboard, the admin console and the AI Lab's "Use survey data" option all require an **email + password login**. The password is checked **on the server** (your Apps Script), never in the browser, and the data is only returned to a signed-in session.
 
-Reading data works immediately (it uses the same endpoint as the dashboard). **Approving/rejecting needs a one-time setup**, because the web app is deployed with access "Anyone" and write actions must be protected by a secret:
+**Why not just hide the page in JavaScript?** GitHub Pages is static and public: anything in the repo (including a password hash) can be read by anyone. A weak password's hash can be cracked in seconds. So the username, salt, hash and signing secret live in Apps Script **Script properties** (private to you, the script owner) and are never committed.
 
-1. Paste the updated `google-apps-script.js` into your Apps Script project (it now contains `adminPing` and `adminSetStatus`).
-2. In the Apps Script editor open **Project Settings (gear icon) > Script properties > Add script property**:
-   - Name: `ADMIN_KEY`
-   - Value: a long random passphrase (only you should know it)
-3. **Deploy > Manage deployments > Edit (pencil) > Version: New version > Deploy.** The `/exec` URL stays the same.
-4. Open `admin.html`, click **Locked**, enter your name and the key. The key is kept only in that browser tab (sessionStorage) and sent only in POST bodies.
+### One-time setup
 
-If `ADMIN_KEY` is not set, every admin action is refused by the server.
+1. **Create the 5 private properties.** In PowerShell, from the project folder:
+   ```powershell
+   $env:DARKNESS_ADMIN_USER = "you@example.com"
+   $env:DARKNESS_ADMIN_PASSWORD = "a long unique passphrase"      # never reuse your server/SSH password
+   .\tools\New-AdminHash.ps1 -OutFile ..\.secrets\apps-script-properties.txt
+   Remove-Item Env:\DARKNESS_ADMIN_PASSWORD
+   ```
+   The tool derives a salted PBKDF2-HMAC-SHA256 key (the plaintext is never written to disk) and prints `ADMIN_USER`, `ADMIN_SALT`, `ADMIN_PASS_HASH`, `ADMIN_ITER`, `SESSION_SECRET`. The `.secrets/` folder is git-ignored; keep it out of GitHub.
+2. In Apps Script open **Project Settings (gear icon) > Script properties > Add script property** and add each of the 5 names/values.
+3. Paste the updated `google-apps-script.js` into the project, then **Deploy > Manage deployments > Edit (pencil) > Version: New version > Deploy**. The `/exec` URL stays the same.
+4. Open `admin.html` (or `dashboard.html`) and sign in.
 
-> Note: the public `getDashboardData` endpoint returns all request rows (names, emails, mobile numbers) to anyone who has the URL. Locking the admin page does not change that. If this data is sensitive, protect the read endpoints with the same `ADMIN_KEY` check (this would also require the public dashboard to send the key).
-
+### How it behaves
+- A correct login returns a signed session token valid for **8 hours**. It is kept in `sessionStorage` (cleared when the tab closes) and sent with every admin request.
+- **5 wrong attempts lock logins for about 15 minutes.**
+- The old public data endpoints (`getDashboardData`, `getSurveyData`, `getRequestData`, `getDashboardStats`, `debug`, `testPost`) now answer "Login required". Previously they returned every respondent's name, email and mobile number to anyone with the URL, and `testPost` wrote to the sheet.
+- The survey itself (sign-in as new / already, submit survey) is unchanged and still public.
+- To change the password: run the tool again and replace `ADMIN_SALT` and `ADMIN_PASS_HASH` (and `ADMIN_USER` if needed). To sign everyone out immediately: change `SESSION_SECRET`.
+- Until step 3 is done the sign-in form shows "backend has not been updated yet" (and the dashboard cannot load data).
 # Clarity AI Lab (`ai.html`)
 
 Ask several AI models the same question at once (Compare), let them race (first complete answer wins), or merge their answers (Synthesize). Supported: Google Gemini, Anthropic, OpenAI, OpenRouter, Groq, Mistral, Together, Z.ai, Azure OpenAI, local Ollama, and any OpenAI-compatible server.

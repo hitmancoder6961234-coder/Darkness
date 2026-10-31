@@ -1,0 +1,95 @@
+# Render Blueprint for Darkness (static site).
+# Render: New + > Blueprint > pick this repo. The site is plain HTML/CSS/JS, so no runtime is needed.
+#
+# SECRETS: a static site has no server-side environment, and anything shipped to the browser is public.
+# The admin login is verified by the Google Apps Script backend, whose private "Script properties"
+# (ADMIN_USER, ADMIN_SALT, ADMIN_PASS_HASH, ADMIN_ITER, SESSION_SECRET) are the real environment variables.
+# See DEPLOY.md. Do NOT add passwords or hashes here.
+services:
+  - type: web
+    name: darkness
+    runtime: static
+    branch: main
+    autoDeploy: true
+    pullRequestPreviewsEnabled: true
+    # publish only the website files (keeps tools/, SETUP.md and google-apps-script.js off the public site)
+    buildCommand: mkdir -p dist && cp -r *.html css js assets dist/
+    staticPublishPath: dist
+
+    routes:
+      - type: redirect
+        source: /request.html
+        destination: /survey.html
+      - type: rewrite
+        source: /survey
+        destination: /survey.html
+      - type: rewrite
+        source: /dashboard
+        destination: /dashboard.html
+      - type: rewrite
+        source: /admin
+        destination: /admin.html
+      - type: rewrite
+        source: /ai
+        destination: /ai.html
+      - type: rewrite
+        source: /quiz
+        destination: /Quiz.html
+      - type: rewrite
+        source: /okay
+        destination: /OKAY.html
+      - type: rewrite
+        source: /breathing
+        destination: /breathing.html
+
+    headers:
+      # --- security headers on every response ---
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+
+      # --- keep the admin/AI pages out of search engines and out of caches ---
+      - path: /admin
+        name: X-Robots-Tag
+        value: noindex, nofollow
+      - path: /admin.html
+        name: X-Robots-Tag
+        value: noindex, nofollow
+      - path: /dashboard
+        name: X-Robots-Tag
+        value: noindex, nofollow
+      - path: /dashboard.html
+        name: X-Robots-Tag
+        value: noindex, nofollow
+      - path: /ai
+        name: X-Robots-Tag
+        value: noindex, nofollow
+      - path: /ai.html
+        name: X-Robots-Tag
+        value: noindex, nofollow
+
+      # --- caching ---
+      - path: /css/*
+        name: Cache-Control
+        value: public, max-age=3600, must-revalidate
+      - path: /js/*
+        name: Cache-Control
+        value: public, max-age=3600, must-revalidate
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=604800

@@ -66,58 +66,53 @@ var autoRefreshInterval = null;
 // Data Functions
 // =======================================
 
+// The dashboard data now requires an admin login (see js/auth.js). The server only returns it for a valid
+// session token, so there is a single authenticated request; the helpers below reuse its result.
+var lastAdminData = null;
+
+function showDataError(error) {
+    var box = document.getElementById("dataErrorNotice");
+    if (!box) {
+        box = document.createElement("div");
+        box.id = "dataErrorNotice";
+        box.className = "no-data";
+        box.style.display = "block";
+        var container = document.querySelector(".dashboard-container");
+        container.insertBefore(box, container.children[1] || null);
+    }
+    box.innerHTML = "<h2>Could not load data</h2><p></p>";
+    box.querySelector("p").textContent = (error && error.message) || "Unknown error";
+}
+
 function fetchDashboardData() {
-    return fetch(GOOGLE_SHEETS_URL + "?action=getDashboardData")
-        .then(function(response) { return response.json(); })
+    lastAdminData = null;
+    return DarkAuth.call("adminData")
         .then(function(data) {
+            var notice = document.getElementById("dataErrorNotice");
+            if (notice) notice.remove();
             if (data && typeof data === "object") {
+                lastAdminData = data;
                 return data;
             }
             return { stats: {}, requests: [], responses: [], questionBreakdown: {} };
         })
         .catch(function(error) {
             console.error("Error fetching dashboard data:", error);
+            showDataError(error);
             return { stats: {}, requests: [], responses: [], questionBreakdown: {} };
         });
 }
 
 function fetchSurveyData() {
-    return fetch(GOOGLE_SHEETS_URL + "?action=getSurveyData")
-        .then(function(response) { return response.json(); })
-        .then(function(data) {
-            if (Array.isArray(data)) return data;
-            return [];
-        })
-        .catch(function(error) {
-            console.error("Error fetching survey data:", error);
-            return [];
-        });
+    return Promise.resolve(lastAdminData && Array.isArray(lastAdminData.responses) ? lastAdminData.responses : []);
 }
 
 function fetchRequestData() {
-    return fetch(GOOGLE_SHEETS_URL + "?action=getRequestData")
-        .then(function(response) { return response.json(); })
-        .then(function(data) {
-            if (Array.isArray(data)) return data;
-            return [];
-        })
-        .catch(function(error) {
-            console.error("Error fetching request data:", error);
-            return [];
-        });
+    return Promise.resolve(lastAdminData && Array.isArray(lastAdminData.requests) ? lastAdminData.requests : []);
 }
 
 function fetchDashboardStats() {
-    return fetch(GOOGLE_SHEETS_URL + "?action=getDashboardStats")
-        .then(function(response) { return response.json(); })
-        .then(function(data) {
-            if (data && typeof data === "object") return data;
-            return {};
-        })
-        .catch(function(error) {
-            console.error("Error fetching dashboard stats:", error);
-            return {};
-        });
+    return Promise.resolve(lastAdminData && lastAdminData.stats ? lastAdminData.stats : {});
 }
 
 function countOption(responses, column) {
@@ -1181,8 +1176,17 @@ for (var i = 0; i < sortableHeaders.length; i++) {
     });
 }
 
+// Sign out
+var signOutBtn = document.getElementById("signOutBtn");
+if (signOutBtn) {
+    signOutBtn.addEventListener("click", function(e) {
+        e.preventDefault();
+        DarkAuth.logout();
+    });
+}
+
 // =======================================
-// Initialize Dashboard
+// Initialize Dashboard (waits for the admin sign-in)
 // =======================================
 
-loadAllData();
+DarkAuth.ready().then(loadAllData);

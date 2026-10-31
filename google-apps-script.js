@@ -526,20 +526,15 @@ function doGet(e) {
   var action = e.parameter.action;
 
   if (action === "checkAccess") {
+    // Public by design: the survey sign-in screen asks "is this email approved?"
     return checkAccess(e.parameter.email);
-  } else if (action === "getSurveyData") {
-    return getSurveyData();
-  } else if (action === "getRequestData") {
-    return getRequestData();
-  } else if (action === "getDashboardStats") {
-    return getDashboardStats();
-  } else if (action === "getDashboardData") {
-    return getDashboardData();
-  } else if (action === "debug") {
-    return debugSheetInfo();
-  } else if (action === "testPost") {
-    // Test endpoint - simulates a POST to verify the full flow
-    return testPostHandler(e.parameter);
+  } else if (
+    action === "getSurveyData" || action === "getRequestData" || action === "getDashboardStats" ||
+    action === "getDashboardData" || action === "debug" || action === "testPost"
+  ) {
+    // These used to be public and returned every respondent's name / email / mobile (and "testPost"
+    // wrote to the sheet). They now require an admin login: use the POST action "adminData".
+    return adminJson({ status: "error", code: "auth", message: "Login required. Sign in at admin.html." });
   }
 
   return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unknown action" }))
@@ -600,8 +595,12 @@ function doPost(e) {
     return handleAccessRequest(data);
   } else if (action === "surveyResponse") {
     return handleSurveyResponse(data);
-  } else if (action === "adminPing") {
-    return handleAdminPing(data);
+  } else if (action === "adminLogin") {
+    return handleAdminLogin(data);
+  } else if (action === "adminSession") {
+    return handleAdminSession(data);
+  } else if (action === "adminData") {
+    return handleAdminData(data);
   } else if (action === "adminSetStatus") {
     return handleAdminSetStatus(data);
   }
@@ -1235,51 +1234,171 @@ function rejectSelected() {
 }
 
 // =======================================
-// Admin Console API (admin.html)
-// SECURITY: this web app is deployed with access "Anyone", so every admin action must be
-// protected by a secret that only the owner knows. Set it once in the script editor:
-//   Project Settings (gear icon) > Script properties > Add property
-//   Name: ADMIN_KEY      Value: a long random passphrase
-// If ADMIN_KEY is not set, ALL admin actions below are refused.
-// After pasting this file, deploy a NEW VERSION (Deploy > Manage deployments > Edit > New version).
+// Admin login + Admin API (admin.html, dashboard.html, ai.html)
+//
+// SECURITY MODEL
+//  - The web app is public ("Anyone"), so the password is checked HERE, on the server.
+//  - The username, salt, password hash and signing secret live in Script properties
+//    (Project Settings > Script properties). They are private to the script owner and are NEVER
+//    in this file or on GitHub. Generate them with tools/New-AdminHash.ps1.
+//  - A correct login returns a signed session token (8 hours). Every admin read/write must send it.
+//  - 5 wrong attempts lock logins for ~15 minutes. Passwords are never logged.
+//
+// Required Script properties:
+//   ADMIN_USER       admin email / username (lower case)
+//   ADMIN_SALT       base64 salt
+//   ADMIN_PASS_HASH  base64 PBKDF2-HMAC-SHA256 key
+//   ADMIN_ITER       PBKDF2 iterations (e.g. 1000)
+//   SESSION_SECRET   random base64 string used to sign session tokens (rotate it to sign everyone out)
+// After pasting this file: Deploy > Manage deployments > Edit > Version: New version > Deploy.
 // =======================================
+var SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+var MAX_LOGIN_FAILS = 5;
+var LOGIN_LOCK_SECONDS = 15 * 60;
+
 function adminJson(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
-function checkAdminKey(key) {
-  var expected = PropertiesService.getScriptProperties().getProperty("ADMIN_KEY");
-  if (!expected) {
-    return { ok: false, message: "ADMIN_KEY is not configured in Script properties, so admin actions are disabled." };
-  }
-  var given = String(key || "");
-  // constant-time comparison so response timing does not leak the key
-  var diff = given.length ^ expected.length;
-  var len = Math.max(given.length, expected.length);
+function adminError(code, message, extra) {
+  var o = { status: "error", code: code, message: message };
+  if (extra) { for (var k in extra) o[k] = extra[k]; }
+  return adminJson(o);
+}
+
+function authProps() {
+  var p = PropertiesService.getScriptProperties();
+  return {
+    user: String(p.getProperty("ADMIN_USER") || "").trim().toLowerCase(),
+    salt: p.getProperty("ADMIN_SALT"),
+    hash: p.getProperty("ADMIN_PASS_HASH"),
+    iter: parseInt(p.getProperty("ADMIN_ITER") || "1000", 10),
+    secret: p.getProperty("SESSION_SECRET")
+  };
+}
+
+function authConfigured(a) {
+  return !!(a.user && a.salt && a.hash && a.secret && a.iter > 0);
+}
+
+// constant-time string comparison (does not leak how many leading characters matched)
+function safeEqual(a, b) {
+  a = String(a); b = String(b);
+  var diff = a.length ^ b.length;
+  var len = Math.max(a.length, b.length);
   for (var i = 0; i < len; i++) {
-    diff |= (given.charCodeAt(i) || 0) ^ (expected.charCodeAt(i) || 0);
+    diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
   }
-  if (diff !== 0) {
-    return { ok: false, message: "Invalid admin key." };
-  }
-  return { ok: true };
+  return diff === 0;
 }
 
-function handleAdminPing(data) {
-  var check = checkAdminKey(data.key);
-  if (!check.ok) return adminJson({ status: "error", message: check.message });
-  return adminJson({ status: "success", message: "Admin key accepted." });
+// PBKDF2-HMAC-SHA256, single 32-byte block. Same algorithm as tools/New-AdminHash.ps1.
+function pbkdf2Sha256(password, saltBytes, iterations) {
+  var pw = Utilities.newBlob(String(password)).getBytes();
+  var u = Utilities.computeHmacSha256Signature(saltBytes.concat([0, 0, 0, 1]), pw);
+  var t = u.slice();
+  for (var i = 1; i < iterations; i++) {
+    u = Utilities.computeHmacSha256Signature(u, pw);
+    for (var j = 0; j < 32; j++) t[j] = t[j] ^ u[j];
+  }
+  return t;
 }
 
-// data: { key, newStatus: "Approved"|"Rejected"|"Pending", emails: ["a@x.com", ...] or "a@x.com,b@y.com",
-//         by: "who is acting", sendEmail: "true"|"false" }
+function stripPad(s) { return String(s).replace(/=+$/, ""); }
+function addPad(s) { s = String(s); var n = (4 - (s.length % 4)) % 4; return s + "====".slice(0, n); }
+
+function signToken(payload, secret) {
+  var body = stripPad(Utilities.base64EncodeWebSafe(JSON.stringify(payload)));
+  var sig = stripPad(Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(body, secret)));
+  return body + "." + sig;
+}
+
+// returns { ok:true, user } or { ok:false, code, message }
+function verifyToken(token) {
+  var a = authProps();
+  if (!authConfigured(a)) {
+    return { ok: false, code: "not_configured", message: "Admin login is not configured on the server yet (Script properties are missing)." };
+  }
+  var parts = String(token || "").split(".");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return { ok: false, code: "auth", message: "Please sign in." };
+  }
+  var expected = stripPad(Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(parts[0], a.secret)));
+  if (!safeEqual(expected, parts[1])) {
+    return { ok: false, code: "auth", message: "Please sign in again." };
+  }
+  var payload;
+  try {
+    payload = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(addPad(parts[0]))).getDataAsString());
+  } catch (err) {
+    return { ok: false, code: "auth", message: "Please sign in again." };
+  }
+  if (!payload || !payload.exp || payload.exp < Date.now() || !safeEqual(payload.u, a.user)) {
+    return { ok: false, code: "auth", message: "Your session expired. Please sign in again." };
+  }
+  return { ok: true, user: payload.u };
+}
+
+function requireAdmin(data) {
+  var v = verifyToken(data && data.token);
+  return v.ok ? { ok: true, user: v.user } : { ok: false, response: adminError(v.code, v.message) };
+}
+
+function handleAdminLogin(data) {
+  var a = authProps();
+  if (!authConfigured(a)) {
+    return adminError("not_configured", "Admin login is not configured on the server yet (Script properties are missing).");
+  }
+  var cache = CacheService.getScriptCache();
+  var fails = parseInt(cache.get("adm_fails") || "0", 10);
+  if (fails >= MAX_LOGIN_FAILS) {
+    return adminError("locked", "Too many failed attempts. Try again in about 15 minutes.");
+  }
+
+  var user = String((data && data.user) || "").trim().toLowerCase().slice(0, 200);
+  var pass = String((data && data.pass) || "").slice(0, 200);
+
+  // always run the full key derivation so timing does not reveal whether the username was right
+  var derived = Utilities.base64Encode(pbkdf2Sha256(pass, Utilities.base64Decode(a.salt), a.iter));
+  var userOk = safeEqual(user, a.user);
+  var passOk = safeEqual(derived, a.hash);
+
+  if (!(userOk && passOk)) {
+    cache.put("adm_fails", String(fails + 1), LOGIN_LOCK_SECONDS);
+    Utilities.sleep(700);
+    var left = MAX_LOGIN_FAILS - (fails + 1);
+    return adminError("invalid", "Incorrect email or password." + (left > 0 ? " " + left + " attempt" + (left === 1 ? "" : "s") + " left." : " Login is now locked for about 15 minutes."));
+  }
+
+  cache.remove("adm_fails");
+  var now = Date.now();
+  var exp = now + SESSION_TTL_MS;
+  return adminJson({ status: "success", token: signToken({ u: a.user, iat: now, exp: exp }, a.secret), expiresAt: exp });
+}
+
+// lets the browser check that a stored token is still valid
+function handleAdminSession(data) {
+  var g = requireAdmin(data);
+  if (!g.ok) return g.response;
+  return adminJson({ status: "success" });
+}
+
+// dashboard / admin data: stats + requests + responses + per-question counts
+function handleAdminData(data) {
+  var g = requireAdmin(data);
+  if (!g.ok) return g.response;
+  return getDashboardData();
+}
+
+// data: { token, newStatus: "Approved"|"Rejected"|"Pending", emails: [..] or "a@x.com,b@y.com",
+//         by: "display name (optional)", sendEmail: "true"|"false" }
 function handleAdminSetStatus(data) {
-  var check = checkAdminKey(data.key);
-  if (!check.ok) return adminJson({ status: "error", message: check.message });
+  var g = requireAdmin(data);
+  if (!g.ok) return g.response;
 
   var newStatus = String(data.newStatus || "").trim();
   if (["Approved", "Rejected", "Pending"].indexOf(newStatus) === -1) {
-    return adminJson({ status: "error", message: "newStatus must be Approved, Rejected or Pending." });
+    return adminError("bad_request", "newStatus must be Approved, Rejected or Pending.");
   }
 
   var emails = Array.isArray(data.emails) ? data.emails : String(data.emails || "").split(/[\n,;]+/);
@@ -1289,10 +1408,10 @@ function handleAdminSetStatus(data) {
     var clean = String(emails[e]).trim().toLowerCase();
     if (clean && !wanted[clean]) { wanted[clean] = true; count++; }
   }
-  if (count === 0) return adminJson({ status: "error", message: "No emails supplied." });
-  if (count > 200) return adminJson({ status: "error", message: "Too many emails in one request (max 200)." });
+  if (count === 0) return adminError("bad_request", "No emails supplied.");
+  if (count > 200) return adminError("bad_request", "Too many emails in one request (max 200).");
 
-  var by = String(data.by || "Admin console").replace(/[\r\n]+/g, " ").slice(0, 80);
+  var by = String(data.by || g.user || "Admin console").replace(/[\r\n]+/g, " ").slice(0, 80);
   var sendEmail = String(data.sendEmail) !== "false";
 
   var lock = LockService.getScriptLock();
@@ -1300,14 +1419,14 @@ function handleAdminSetStatus(data) {
   try {
     var ss = SpreadsheetApp.openById(SHEET_ID);
     var sheet = ss.getSheetByName(REQUESTS_SHEET);
-    if (!sheet) return adminJson({ status: "error", message: "Requests sheet not found." });
+    if (!sheet) return adminError("server", "Requests sheet not found.");
 
     var all = sheet.getDataRange().getValues();
     var emailCol = getColumnIndex(sheet, "Email");
     var statusCol = getColumnIndex(sheet, "Status");
     var nameCol = getColumnIndex(sheet, "Name");
     var byCol = getColumnIndex(sheet, "Approved By");
-    if (emailCol < 0 || statusCol < 0) return adminJson({ status: "error", message: "Email/Status columns not found." });
+    if (emailCol < 0 || statusCol < 0) return adminError("server", "Email/Status columns not found.");
 
     var updated = 0, unchanged = 0, emailed = 0;
     var found = {};
@@ -1333,7 +1452,7 @@ function handleAdminSetStatus(data) {
     var notFound = [];
     Object.keys(wanted).forEach(function (k) { if (!found[k]) notFound.push(k); });
 
-    Logger.log("adminSetStatus -> " + newStatus + " by " + by + ": updated=" + updated + " unchanged=" + unchanged + " notFound=" + notFound.length);
+    Logger.log("adminSetStatus -> " + newStatus + ": updated=" + updated + " unchanged=" + unchanged + " notFound=" + notFound.length);
     return adminJson({ status: "success", updated: updated, unchanged: unchanged, emailed: emailed, notFound: notFound });
   } finally {
     lock.releaseLock();

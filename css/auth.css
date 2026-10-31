@@ -1,0 +1,68 @@
+/* ===============================
+   Darkness - sign-in overlay (dark + neon glow)
+   =============================== */
+
+/* while a required page is locked, hide everything except the sign-in form */
+html.auth-locked body > *:not(.auth-overlay):not(script):not(link):not(style) { visibility: hidden !important; }
+html.auth-locked body { overflow: hidden; }
+
+.auth-overlay {
+    position: fixed; inset: 0; z-index: 10050; display: flex; align-items: center; justify-content: center; padding: 20px; overflow: auto;
+    font-family: "Poppins", sans-serif; color: #eef2ff;
+    background:
+        radial-gradient(ellipse at 20% 15%, rgba(78, 163, 255, 0.28), transparent 55%),
+        radial-gradient(ellipse at 85% 90%, rgba(139, 92, 246, 0.30), transparent 55%),
+        rgba(6, 11, 22, 0.94);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    animation: auth-fade 0.35s ease both;
+}
+@keyframes auth-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.auth-card {
+    position: relative; width: min(420px, 100%); padding: 30px 28px 24px; border-radius: 22px; display: grid; gap: 8px;
+    background: rgba(14, 24, 44, 0.88); border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.85), 0 0 70px -22px rgba(124, 58, 237, 0.75), 0 0 0 1px rgba(78, 163, 255, 0.12);
+    animation: auth-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.auth-card::before { /* glowing gradient edge */
+    content: ""; position: absolute; inset: -1px; border-radius: 23px; padding: 1.5px; pointer-events: none;
+    background: linear-gradient(135deg, rgba(94, 234, 212, 0.9), rgba(96, 165, 250, 0.6) 40%, rgba(167, 139, 250, 0.9));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); opacity: 0.55;
+}
+@keyframes auth-rise { from { opacity: 0; transform: translateY(18px) scale(0.98); } to { opacity: 1; transform: none; } }
+.auth-shake { animation: auth-shake 0.4s ease; }
+@keyframes auth-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-9px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); } }
+
+.auth-logo { width: 64px; height: 64px; justify-self: center; filter: drop-shadow(0 0 18px rgba(124, 58, 237, 0.85)); animation: auth-float 5s ease-in-out infinite; }
+@keyframes auth-float { 50% { transform: translateY(-4px) scale(1.04); } }
+.auth-card h2 { text-align: center; font-size: 1.4rem; font-weight: 700; margin: 2px 0 0; background: linear-gradient(90deg, #fff, #a5c8ff 55%, #c4b5fd); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.auth-sub { text-align: center; color: #94a3b8; font-size: 0.88rem; margin: 0 0 8px; }
+.auth-card label { font-size: 0.82rem; font-weight: 600; color: #cbd5e1; margin-top: 6px; }
+.auth-card input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid #415a77; background: #0a1426; color: #fff; font: 0.95rem "Poppins", sans-serif; }
+.auth-card input:focus { outline: none; border-color: #4ea3ff; box-shadow: 0 0 0 3px rgba(78, 163, 255, 0.2), 0 0 24px -4px rgba(78, 163, 255, 0.55); }
+.auth-passrow { display: flex; gap: 8px; }
+.auth-passrow input { flex: 1; min-width: 0; }
+.auth-eye { padding: 0 14px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.07); color: #bfdcff; font: 500 0.8rem "Poppins", sans-serif; cursor: pointer; }
+.auth-eye:hover { background: rgba(255, 255, 255, 0.14); }
+.auth-msg { min-height: 1.4em; font-size: 0.84rem; color: #fca5a5; line-height: 1.5; margin-top: 4px; }
+.auth-submit {
+    margin-top: 4px; padding: 13px; border: none; border-radius: 12px; cursor: pointer; color: #fff; font: 600 1rem "Poppins", sans-serif;
+    background: linear-gradient(135deg, #7c3aed, #2563eb); box-shadow: 0 8px 28px -8px rgba(124, 58, 237, 0.95);
+    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s;
+}
+.auth-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 34px -6px rgba(124, 58, 237, 1), 0 0 0 1px rgba(139, 92, 246, 0.6); }
+.auth-submit:disabled { opacity: 0.7; cursor: wait; }
+.auth-submit.is-busy { animation: auth-pulse 1.2s ease-in-out infinite; }
+@keyframes auth-pulse { 50% { box-shadow: 0 8px 36px -2px rgba(78, 163, 255, 0.95); } }
+.auth-back, .auth-cancel { text-align: center; color: #7cc4ff; font: 500 0.88rem "Poppins", sans-serif; text-decoration: none; background: none; border: none; cursor: pointer; padding: 6px; }
+.auth-back:hover, .auth-cancel:hover { text-decoration: underline; }
+.auth-foot { text-align: center; color: #64748b; font-size: 0.72rem; line-height: 1.5; margin: 4px 0 0; }
+.auth-card :focus-visible { outline: 2px solid #4ea3ff; outline-offset: 2px; }
+
+/* the glow dock must not sit on top of the sign-in form */
+html.auth-locked .fx-dock, html.auth-locked .fx-rail, html.auth-locked .fx-halo { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-overlay, .auth-card, .auth-logo, .auth-shake, .auth-submit.is-busy { animation: none; }
+}

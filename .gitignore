@@ -1,0 +1,16 @@
+# --- secrets: NEVER commit these -------------------------------------------
+# Output of tools/New-AdminHash.ps1 (Apps Script Script properties) and any local env files
+.secrets/
+apps-script-properties*.txt
+*.local.txt
+*.local.json
+.env
+.env.*
+!.env.example
+
+# --- build / tooling output ------------------------------------------------
+dist/
+.vercel/
+node_modules/
+.DS_Store
+Thumbs.db

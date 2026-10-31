@@ -7,8 +7,6 @@
 (function (root) {
     "use strict";
 
-    var SHEETS_URL = "https://script.google.com/macros/s/AKfycbxNezU-FZQzKrBSEB8dj0MC8-30a1E7_gw7cK68hHWXrZHofW9gwVglDwlW4e5vkpEw6Q/exec";
-
     var BASE_SYSTEM = [
         "You are an assistant inside the Laptop Market Research platform (Clarity AI Lab).",
         "If asked which model you are, say which model you actually are, if you know.",
@@ -65,10 +63,11 @@
         return JSON.stringify(out, null, 1);
     }
 
-    async function fetchSurveyContext(signal) {
-        var resp = await fetch(SHEETS_URL + "?action=getDashboardData", { signal: signal });
-        if (!resp.ok) throw new Error("Survey data request failed (HTTP " + resp.status + ")");
-        var data = await resp.json();
+    // The survey data is now behind the admin login: DarkAuth shows the sign-in form if needed and attaches
+    // the session token. Only the aggregated summary below is ever sent to an AI provider.
+    async function fetchSurveyContext() {
+        if (!root.DarkAuth) throw new Error("Sign-in module not loaded");
+        var data = await root.DarkAuth.call("adminData");
         var text = summariseSurvey(data);
         if (!text) throw new Error("No survey data returned");
         return text;

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-auth="required">
 
 <head>
     <meta charset="UTF-8">
@@ -10,6 +10,9 @@
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
     <meta name="theme-color" content="#08111f">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="css/auth.css">
+    <script src="js/auth.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -30,6 +33,7 @@
                     <a href="index.html" class="back-link">&#8592; Back to Home</a>
                     <a href="ai.html" class="back-link">AI Insights</a>
                     <a href="admin.html" class="back-link">Admin Console</a>
+                    <a href="#" class="back-link" id="signOutBtn">Sign out</a>
                     <button id="refreshBtn" class="refresh-btn" title="Refresh Data">
                         <span class="refresh-icon">&#8635;</span> Refresh
                     </button>
@@ -360,7 +364,7 @@
 
     </div>
 
-    <script src="js/dashboard.js?v=3"></script>
+    <script src="js/dashboard.js?v=4"></script>
     <script src="js/effects.js" defer></script>
 </body>
 
