@@ -6,6 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laptop Market Research</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/effects.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <meta name="theme-color" content="#08111f">
+    <meta name="description" content="Darkness - Light from the dark. Laptop market research: take the survey, explore live analytics, and ask several AIs about the data.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Darkness">
+    <meta property="og:title" content="Darkness - Laptop Market Research">
+    <meta property="og:description" content="Light from the dark. Take the survey, explore live analytics and compare AI insights.">
+    <meta property="og:image" content="https://hitmancoder6961234-coder.github.io/Darkness/assets/og-image.png">
+    <meta property="og:url" content="https://hitmancoder6961234-coder.github.io/Darkness/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://hitmancoder6961234-coder.github.io/Darkness/assets/og-image.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,7 +28,10 @@
 
     <!-- Navigation -->
     <nav>
-        <div class="logo">Laptop Research</div>
+        <a class="brand-link" href="#home" aria-label="Darkness - Laptop Research, back to top">
+            <img class="brand-mark" src="assets/icon-96.png" alt="" width="40" height="40">
+            <span class="logo">Laptop Research</span>
+        </a>
         <ul>
             <li><a href="#home">Home</a></li>
             <li><a href="#about">About</a></li>
@@ -25,6 +41,7 @@
             <li><a href="#workflow">Workflow</a></li>
         </ul>
         <div class="nav-actions">
+            <a href="ai.html" class="btn-secondary">AI Lab</a>
             <a href="dashboard.html" class="btn-secondary">Dashboard</a>
             <a href="survey.html" class="btn">Start Survey</a>
         </div>
@@ -33,6 +50,7 @@
     <!-- Hero -->
     <section id="home" class="hero">
         <div class="hero-content">
+            <img class="brand-banner" src="assets/darkness-banner.png" alt="Darkness - Light from the dark" width="1200" height="300">
             <h1>Laptop Market Research Platform</h1>
             <p>Shape the future of laptop technology. Your voice drives innovation — share your preferences, experiences, and expectations to help the industry build better laptops for everyone.</p>
             <div class="buttons">
@@ -168,6 +186,14 @@
                     <h3>Responsive Design</h3>
                     <p>Works smoothly on desktops, tablets, and smartphones — take the survey anywhere, anytime, on any device.</p>
                 </div>
+                <div class="card">
+                    <h3>Multi-AI Insights</h3>
+                    <p>Ask several AI models about the survey data at once — compare their answers side by side, race them, or merge them into one.</p>
+                </div>
+                <div class="card">
+                    <h3>Admin Console</h3>
+                    <p>Approve requests in bulk, explore responses, catch data-quality issues and export reports from one management console.</p>
+                </div>
             </div>
         </div>
     </section>
@@ -204,10 +230,12 @@
 
     <!-- Footer -->
     <footer>
+        <img class="brand-mark brand-mark--footer" src="assets/icon-96.png" alt="Darkness" width="44" height="44">
         <p>&copy; 2026 Laptop Market Research Platform. All Rights Reserved.</p>
     </footer>
 
     <script src="js/main.js"></script>
+    <script src="js/effects.js" defer></script>
 
 </body>
 

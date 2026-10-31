@@ -70,3 +70,35 @@ For the dashboard to show ALL responses (not just the current user's), you need 
 3. Update `dashboard.js` to fetch data from that endpoint
 
 The current dashboard works with localStorage for demo purposes. For multi-user analytics, the Google Sheets integration provides the shared data source.
+
+---
+
+# Admin Console (`admin.html`)
+
+A management console for access requests and survey responses: KPIs and charts, search/sort/filter, bulk approve/reject, data-quality checks, CSV export and a local audit log.
+
+Reading data works immediately (it uses the same endpoint as the dashboard). **Approving/rejecting needs a one-time setup**, because the web app is deployed with access "Anyone" and write actions must be protected by a secret:
+
+1. Paste the updated `google-apps-script.js` into your Apps Script project (it now contains `adminPing` and `adminSetStatus`).
+2. In the Apps Script editor open **Project Settings (gear icon) > Script properties > Add script property**:
+   - Name: `ADMIN_KEY`
+   - Value: a long random passphrase (only you should know it)
+3. **Deploy > Manage deployments > Edit (pencil) > Version: New version > Deploy.** The `/exec` URL stays the same.
+4. Open `admin.html`, click **Locked**, enter your name and the key. The key is kept only in that browser tab (sessionStorage) and sent only in POST bodies.
+
+If `ADMIN_KEY` is not set, every admin action is refused by the server.
+
+> Note: the public `getDashboardData` endpoint returns all request rows (names, emails, mobile numbers) to anyone who has the URL. Locking the admin page does not change that. If this data is sensitive, protect the read endpoints with the same `ADMIN_KEY` check (this would also require the public dashboard to send the key).
+
+# Clarity AI Lab (`ai.html`)
+
+Ask several AI models the same question at once (Compare), let them race (first complete answer wins), or merge their answers (Synthesize). Supported: Google Gemini, Anthropic, OpenAI, OpenRouter, Groq, Mistral, Together, Z.ai, Azure OpenAI, local Ollama, and any OpenAI-compatible server.
+
+- Bring your own API keys via **Models**. Keys go straight from the browser to the provider you pick. By default they are kept for the tab session only; "Remember keys" stores them unencrypted in this browser (and other pages on the same site domain could read them).
+- Use **Fetch models** in the model form to list the exact model IDs your key can use.
+- "Use survey data" sends only aggregated counts from the survey (no names, emails or phone numbers) to the models you selected.
+- Ollama needs `OLLAMA_ORIGINS` set to allow your site; some providers may block direct browser (CORS) calls.
+
+# Lighting effects (`css/effects.css`, `js/effects.js`)
+
+Included on every page. Use the ✨ button (bottom-left) to set the glow level: Off / Subtle / Normal / Vivid. The setting is saved in the browser and the effects respect the system "reduce motion" setting.

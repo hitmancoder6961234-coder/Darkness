@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | Laptop Market Research</title>
     <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/effects.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <meta name="theme-color" content="#08111f">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -19,11 +23,13 @@
         <div class="dashboard-header">
             <div class="header-top">
                 <div class="header-text">
-                    <h1>Admin Dashboard</h1>
+                    <h1><img class="brand-mark brand-mark--inline" src="assets/icon-96.png" alt="" width="40" height="40">Admin Dashboard</h1>
                     <p>Laptop Market Research - Live Analytics</p>
                 </div>
                 <div class="header-actions">
                     <a href="index.html" class="back-link">&#8592; Back to Home</a>
+                    <a href="ai.html" class="back-link">AI Insights</a>
+                    <a href="admin.html" class="back-link">Admin Console</a>
                     <button id="refreshBtn" class="refresh-btn" title="Refresh Data">
                         <span class="refresh-icon">&#8635;</span> Refresh
                     </button>
@@ -355,6 +361,7 @@
     </div>
 
     <script src="js/dashboard.js?v=3"></script>
+    <script src="js/effects.js" defer></script>
 </body>
 
 </html>

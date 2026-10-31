@@ -600,6 +600,10 @@ function doPost(e) {
     return handleAccessRequest(data);
   } else if (action === "surveyResponse") {
     return handleSurveyResponse(data);
+  } else if (action === "adminPing") {
+    return handleAdminPing(data);
+  } else if (action === "adminSetStatus") {
+    return handleAdminSetStatus(data);
   }
 
   return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unknown action: " + action }))
@@ -1228,4 +1232,110 @@ function rejectSelected() {
 
   Logger.log("Rejected " + rejectedCount + " request(s).");
   showAlert("Rejected " + rejectedCount + " request(s).");
+}
+
+// =======================================
+// Admin Console API (admin.html)
+// SECURITY: this web app is deployed with access "Anyone", so every admin action must be
+// protected by a secret that only the owner knows. Set it once in the script editor:
+//   Project Settings (gear icon) > Script properties > Add property
+//   Name: ADMIN_KEY      Value: a long random passphrase
+// If ADMIN_KEY is not set, ALL admin actions below are refused.
+// After pasting this file, deploy a NEW VERSION (Deploy > Manage deployments > Edit > New version).
+// =======================================
+function adminJson(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function checkAdminKey(key) {
+  var expected = PropertiesService.getScriptProperties().getProperty("ADMIN_KEY");
+  if (!expected) {
+    return { ok: false, message: "ADMIN_KEY is not configured in Script properties, so admin actions are disabled." };
+  }
+  var given = String(key || "");
+  // constant-time comparison so response timing does not leak the key
+  var diff = given.length ^ expected.length;
+  var len = Math.max(given.length, expected.length);
+  for (var i = 0; i < len; i++) {
+    diff |= (given.charCodeAt(i) || 0) ^ (expected.charCodeAt(i) || 0);
+  }
+  if (diff !== 0) {
+    return { ok: false, message: "Invalid admin key." };
+  }
+  return { ok: true };
+}
+
+function handleAdminPing(data) {
+  var check = checkAdminKey(data.key);
+  if (!check.ok) return adminJson({ status: "error", message: check.message });
+  return adminJson({ status: "success", message: "Admin key accepted." });
+}
+
+// data: { key, newStatus: "Approved"|"Rejected"|"Pending", emails: ["a@x.com", ...] or "a@x.com,b@y.com",
+//         by: "who is acting", sendEmail: "true"|"false" }
+function handleAdminSetStatus(data) {
+  var check = checkAdminKey(data.key);
+  if (!check.ok) return adminJson({ status: "error", message: check.message });
+
+  var newStatus = String(data.newStatus || "").trim();
+  if (["Approved", "Rejected", "Pending"].indexOf(newStatus) === -1) {
+    return adminJson({ status: "error", message: "newStatus must be Approved, Rejected or Pending." });
+  }
+
+  var emails = Array.isArray(data.emails) ? data.emails : String(data.emails || "").split(/[\n,;]+/);
+  var wanted = {};
+  var count = 0;
+  for (var e = 0; e < emails.length; e++) {
+    var clean = String(emails[e]).trim().toLowerCase();
+    if (clean && !wanted[clean]) { wanted[clean] = true; count++; }
+  }
+  if (count === 0) return adminJson({ status: "error", message: "No emails supplied." });
+  if (count > 200) return adminJson({ status: "error", message: "Too many emails in one request (max 200)." });
+
+  var by = String(data.by || "Admin console").replace(/[\r\n]+/g, " ").slice(0, 80);
+  var sendEmail = String(data.sendEmail) !== "false";
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName(REQUESTS_SHEET);
+    if (!sheet) return adminJson({ status: "error", message: "Requests sheet not found." });
+
+    var all = sheet.getDataRange().getValues();
+    var emailCol = getColumnIndex(sheet, "Email");
+    var statusCol = getColumnIndex(sheet, "Status");
+    var nameCol = getColumnIndex(sheet, "Name");
+    var byCol = getColumnIndex(sheet, "Approved By");
+    if (emailCol < 0 || statusCol < 0) return adminJson({ status: "error", message: "Email/Status columns not found." });
+
+    var updated = 0, unchanged = 0, emailed = 0;
+    var found = {};
+    for (var i = 1; i < all.length; i++) {
+      var rowEmail = String(all[i][emailCol]).trim().toLowerCase();
+      if (!wanted[rowEmail]) continue;
+      found[rowEmail] = true;
+      var current = String(all[i][statusCol]).trim();
+      if (current === newStatus || (newStatus === "Approved" && current === "Accepted")) { unchanged++; continue; }
+
+      sheet.getRange(i + 1, statusCol + 1).setValue(newStatus);
+      if (byCol >= 0) sheet.getRange(i + 1, byCol + 1).setValue(newStatus === "Pending" ? "" : by);
+      updated++;
+
+      // Script edits do not fire the onEdit trigger, so send the approval email explicitly.
+      if (newStatus === "Approved" && sendEmail) {
+        sendApprovalEmail(String(all[i][emailCol]).trim(), nameCol >= 0 ? String(all[i][nameCol]).trim() : "");
+        emailed++;
+      }
+    }
+    SpreadsheetApp.flush();
+
+    var notFound = [];
+    Object.keys(wanted).forEach(function (k) { if (!found[k]) notFound.push(k); });
+
+    Logger.log("adminSetStatus -> " + newStatus + " by " + by + ": updated=" + updated + " unchanged=" + unchanged + " notFound=" + notFound.length);
+    return adminJson({ status: "success", updated: updated, unchanged: unchanged, emailed: emailed, notFound: notFound });
+  } finally {
+    lock.releaseLock();
+  }
 }

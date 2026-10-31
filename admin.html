@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Console | Laptop Market Research</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/effects.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <meta name="theme-color" content="#08111f">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+
+<body class="adm-body">
+    <a class="skip-link" href="#admMain">Skip to content</a>
+
+    <div class="adm">
+        <aside class="adm-side" aria-label="Admin navigation">
+            <div class="adm-brand">
+                <img class="adm-brand__logo" src="assets/icon-96.png" alt="Darkness" width="40" height="40">
+                <div><strong>Darkness Admin</strong><small>Management console</small></div>
+            </div>
+            <nav class="adm-nav" id="admNav" aria-label="Sections"></nav>
+            <div class="adm-side__foot">
+                <a href="index.html">&#8592; Home</a>
+                <a href="dashboard.html">Public dashboard</a>
+                <a href="ai.html">Clarity AI Lab</a>
+            </div>
+        </aside>
+
+        <div class="adm-content">
+            <header class="adm-top">
+                <div>
+                    <h1 id="admTitle">Overview</h1>
+                    <p id="admSub">Live management view of access requests and survey responses.</p>
+                </div>
+                <div class="adm-top__actions">
+                    <span class="adm-updated" id="admUpdated" aria-live="polite">Not loaded yet</span>
+                    <button type="button" class="adm-btn" id="admRefresh">&#8635; Refresh</button>
+                    <label class="adm-switch" title="Reload data every 30 seconds">
+                        <input type="checkbox" id="admAuto"><span class="adm-switch__track" aria-hidden="true"></span><span>Auto</span>
+                    </label>
+                    <button type="button" class="adm-btn adm-btn--key" id="admKeyBtn" aria-live="polite">&#128274; Locked</button>
+                </div>
+            </header>
+
+            <main id="admMain" tabindex="-1" aria-live="off"></main>
+        </div>
+    </div>
+
+    <div class="adm-drawer-root" id="admDrawerRoot" hidden></div>
+    <div id="modalRoot" class="adm-modal-root"></div>
+    <div id="toasts" class="adm-toasts" role="region" aria-label="Notifications"></div>
+    <div id="liveStatus" class="sr-only" role="status" aria-live="polite"></div>
+
+    <script src="js/admin.js"></script>
+    <script src="js/effects.js" defer></script>
+</body>
+
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clarity AI Lab | Laptop Market Research</title>
+    <link rel="stylesheet" href="css/ai.css">
+    <link rel="stylesheet" href="css/effects.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <meta name="theme-color" content="#08111f">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <a class="skip-link" href="#composerInput">Skip to message box</a>
+
+    <div class="lab">
+
+        <!-- Header -->
+        <header class="lab-header">
+            <div class="lab-title">
+                <h1><img class="brand-mark brand-mark--inline" src="assets/icon-96.png" alt="" width="40" height="40">Clarity AI Lab</h1>
+                <p>Ask several AIs at once &mdash; compare, race, or merge their answers.</p>
+            </div>
+            <div class="lab-actions">
+                <a href="index.html" class="back-link">&#8592; Home</a>
+                <a href="dashboard.html" class="back-link">Dashboard</a>
+                <button type="button" id="manageBtn" class="lab-btn lab-btn--primary">&#9881; Models</button>
+                <button type="button" id="newChatBtn" class="lab-btn">New chat</button>
+                <button type="button" id="exportBtn" class="lab-btn">Export</button>
+            </div>
+        </header>
+
+        <!-- Models + options -->
+        <section class="lab-bar" aria-label="Models and options">
+            <div class="lab-bar__row">
+                <div class="chips" id="modelChips" role="group" aria-label="Choose which models to ask"></div>
+            </div>
+            <div class="lab-bar__row lab-bar__row--options">
+                <div class="segmented" role="radiogroup" aria-label="Answer mode">
+                    <button type="button" class="segmented__opt" role="radio" data-mode="compare" aria-checked="true" title="Every model answers; compare side by side">Compare</button>
+                    <button type="button" class="segmented__opt" role="radio" data-mode="race" aria-checked="false" title="First complete answer wins; the rest are stopped">Race</button>
+                </div>
+                <label class="switch" for="useSurvey">
+                    <input type="checkbox" id="useSurvey">
+                    <span class="switch__track" aria-hidden="true"></span>
+                    <span class="switch__label">Use survey data</span>
+                </label>
+                <span class="hint" id="surveyState">Sends only aggregated counts (no names or emails).</span>
+                <button type="button" id="instrBtn" class="lab-btn lab-btn--ghost" aria-expanded="false" aria-controls="instrWrap">Instructions</button>
+            </div>
+            <div id="instrWrap" class="instr" hidden>
+                <label for="instructions" class="sr-only">Custom instructions sent to every model</label>
+                <textarea id="instructions" rows="2" maxlength="1500" placeholder="Optional instructions for every model, e.g. &quot;Answer for a college student audience&quot; or &quot;Reply in Hinglish&quot;."></textarea>
+            </div>
+        </section>
+
+        <!-- Conversation -->
+        <main id="conversation" class="conversation" role="log" aria-live="off" aria-label="Conversation">
+            <div class="empty" id="emptyState">
+                <div class="empty__orb" aria-hidden="true"></div>
+                <h2>What do you want to ask?</h2>
+                <p>Pick two or more models above and send one prompt &mdash; each answer streams in its own card.</p>
+                <div class="empty__chips" id="quickPrompts"></div>
+                <div class="onboard" id="onboard" hidden>
+                    <h3>Add your first AI model</h3>
+                    <p>Bring your own API key. Keys stay in this browser and go straight to the provider you choose.</p>
+                    <div class="onboard__btns" id="onboardBtns"></div>
+                </div>
+            </div>
+        </main>
+
+        <div id="liveStatus" class="sr-only" role="status" aria-live="polite"></div>
+
+        <!-- Composer -->
+        <div class="composer-wrap">
+            <div class="composer-card" id="composerCard">
+                <div class="composer-card__files" id="fileChips"></div>
+                <div class="composer-card__row">
+                    <button type="button" id="attachBtn" class="icon-btn" aria-label="Attach a text file (txt, md, csv, json)" title="Attach a text file">&#128206;</button>
+                    <input type="file" id="fileInput" accept=".txt,.md,.csv,.tsv,.json,.log,text/plain,text/csv,application/json" multiple hidden>
+                    <textarea id="composerInput" rows="1" aria-label="Message input" placeholder="Ask about the survey, or anything else&hellip;  (Enter to send, Shift+Enter for a new line)"></textarea>
+                    <button type="button" id="sendBtn" class="send-btn" aria-label="Send message" disabled>
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="composer-hint" id="composerHint">AI answers can be wrong &mdash; check important facts.</div>
+        </div>
+    </div>
+
+    <div id="modalRoot"></div>
+    <div id="toasts" class="toasts" role="region" aria-label="Notifications"></div>
+
+    <script src="js/ai/providers.js"></script>
+    <script src="js/ai/stream.js"></script>
+    <script src="js/ai/markdown.js"></script>
+    <script src="js/ai/prompts.js"></script>
+    <script src="js/ai/store.js"></script>
+    <script src="js/ai/app.js"></script>
+    <script src="js/effects.js" defer></script>
+</body>
+
+</html>
